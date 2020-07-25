@@ -36,9 +36,15 @@ class ImageArea(GuiElement):
         self.label.configure(image=tk_image)
         self.label.image = tk_image
 
+    def _image_clicked(self, event):
+        x = event.x
+        y = event.y
+        EVENT_PROCESSOR.emit_event("ImageClicked", x=x, y=y)
+
     def setup(self):
         self.frame.configure(padding=20)
         self.label.grid(column=0, row=0)
+        self.label.bind("<Button-1>", self._image_clicked)
         EVENT_PROCESSOR.register_listener(self.listener)
         self.listener.receive_event = self.change_image
         self.update_image()
@@ -49,15 +55,16 @@ class ControlArea(GuiElement):
         super().__init__(parent)
         self.load_image_button = self._create_image_load_button()
         self.solve_button = self._create_solve_button()
+        self.start_point_button = self._create_start_point_button()
+        self.end_point_button = self._create_end_point_button()
         self.image_filename = ""
 
     def setup(self):
         self.frame.configure(padding=20)
-        self.frame.columnconfigure(0, weight=1)
-        self.frame.rowconfigure(0, weight=0)
-        self.frame.rowconfigure(1, weight=1)
-        self.load_image_button.grid(column=0, row=0, sticky="NW", pady=(0, 10))
-        self.solve_button.grid(column=0, row=1, sticky="NE")
+        self.load_image_button.grid(column=0, row=0, sticky="NWE", pady=(0, 10))
+        self.solve_button.grid(column=0, row=1, sticky="NWE", pady=(0, 10))
+        self.start_point_button.grid(column=0, row=2, sticky="NWE", pady=(0, 10))
+        self.end_point_button.grid(column=0, row=3, sticky="NWE")
 
     def _select_image_command(self):
         filename = filedialog.askopenfilename(title="Select an Image")
@@ -66,6 +73,22 @@ class ControlArea(GuiElement):
 
     def _create_image_load_button(self):
         button = ttk.Button(self.frame, text="Load Image", command=self._select_image_command)
+        return button
+
+    def _set_start_point_command(self):
+        EVENT_PROCESSOR.emit_event("PointChange", kind="start")
+
+    def _create_start_point_button(self):
+        button = ttk.Button(
+            self.frame, text="Set Start Point", command=self._set_start_point_command
+        )
+        return button
+
+    def _set_end_point_command(self):
+        EVENT_PROCESSOR.emit_event("PointChange", kind="end")
+
+    def _create_end_point_button(self):
+        button = ttk.Button(self.frame, text="Set End Point", command=self._set_end_point_command)
         return button
 
     def _solve_maze_command(self):
