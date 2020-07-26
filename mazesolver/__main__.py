@@ -5,5 +5,5 @@ from mazesolver.image import MazeImage
 if __name__ == "__main__":
     image = MazeImage("mazesolver/maze.png")
     a = Application(image)
-    c = Controller()
+    c = Controller(image)
     a.start()

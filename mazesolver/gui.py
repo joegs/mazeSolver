@@ -26,11 +26,13 @@ class ImageArea(GuiElement):
         self.label = ttk.Label(self.frame)
         self.image = image
         self.listener = EventListener("Image Changed")
+        self.update_listener = EventListener("UpdateImage")
 
     def change_image(self, image_path: str):
         self.image.load_image(image_path)
         self.update_image()
 
+    # TODO force tk update here
     def update_image(self):
         tk_image = self.image.get_tk_image(self.IMAGE_SIZE)
         self.label.configure(image=tk_image)
@@ -45,9 +47,16 @@ class ImageArea(GuiElement):
         self.frame.configure(padding=20)
         self.label.grid(column=0, row=0)
         self.label.bind("<Button-1>", self._image_clicked)
-        EVENT_PROCESSOR.register_listener(self.listener)
-        self.listener.receive_event = self.change_image
         self.update_image()
+        self.setup_listeners()
+
+    def setup_listeners(self):
+        change_image_listener = EventListener("Image Changed")
+        update_image_listener = EventListener("UpdateImage")
+        EVENT_PROCESSOR.register_listener(change_image_listener)
+        EVENT_PROCESSOR.register_listener(update_image_listener)
+        change_image_listener.receive_event = self.change_image
+        update_image_listener.receive_event = self.update_image
 
 
 class ControlArea(GuiElement):
@@ -92,7 +101,7 @@ class ControlArea(GuiElement):
         return button
 
     def _solve_maze_command(self):
-        pass
+        EVENT_PROCESSOR.emit_event("SolveMaze")
 
     def _create_solve_button(self):
         button = ttk.Button(self.frame, text="Solve", command=self._solve_maze_command)
