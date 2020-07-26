@@ -20,18 +20,22 @@ class MazeImage:
         self.bw_pixels = bw_pixels
         self.overlay = np.zeros_like(self.pixels)
 
-    def get_tk_image(self, size: Optional[Tuple[int, int]] = None) -> ImageTk.PhotoImage:
-        x = np.array([0, 0, 0])
-        p = np.copy(self.pixels)
-        for i, _ in enumerate(self.overlay):
-            for j, pixel in enumerate(self.overlay[i]):
-                if (pixel == x).all():
+    def is_black_pixel(self, pixel: np.array):
+        return tuple(pixel) == (0, 0, 0)
+
+    def apply_overlay(self):
+        pixels = np.copy(self.pixels)
+        for y, _ in enumerate(self.overlay):
+            for x, pixel in enumerate(self.overlay[y]):
+                if self.is_black_pixel(pixel):
                     continue
-                p[i, j] = pixel
+                pixels[y, x] = pixel
+        return pixels
+
+    def get_tk_image(self, size: Optional[Tuple[int, int]] = None) -> ImageTk.PhotoImage:
+        pixels = self.apply_overlay()
         if size:
-            pixels = cv2.resize(p, size)
-        else:
-            pixels = p
+            pixels = cv2.resize(pixels, size)
         image = Image.fromarray(pixels)
         tk_image = ImageTk.PhotoImage(image)
         return tk_image
