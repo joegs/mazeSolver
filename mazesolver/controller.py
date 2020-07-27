@@ -32,13 +32,20 @@ class Controller:
         self.solver.solve(self.image, self.start_point, self.end_point)
         EVENT_PROCESSOR.emit_event("UpdateImage")
 
+    def _reset_points(self, image_path):
+        self.start_point = (0, 0)
+        self.end_point = (0, 0)
+
     def setup_listeners(self):
         position_listener = EventListener("PointChange")
         image_listener = EventListener("ImageClicked")
         solve_listener = EventListener("SolveMaze")
+        image_changed_listener = EventListener("ImageChanged")
         EVENT_PROCESSOR.register_listener(position_listener)
         EVENT_PROCESSOR.register_listener(image_listener)
         EVENT_PROCESSOR.register_listener(solve_listener)
+        EVENT_PROCESSOR.register_listener(image_changed_listener)
         position_listener.receive_event = self._point_change
         image_listener.receive_event = self._image_clicked
         solve_listener.receive_event = self._solve_maze
+        image_changed_listener.receive_event = self._reset_points
