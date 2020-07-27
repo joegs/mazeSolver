@@ -4,7 +4,7 @@ from mazesolver.image import MazeImage
 
 
 class Controller:
-    def __init__(self, image):
+    def __init__(self, image: MazeImage):
         self.image = image
         self.start_point = (0, 0)
         self.end_point = (0, 0)
@@ -23,7 +23,8 @@ class Controller:
         self.point_change = ""
 
     def _solve_maze(self):
-        x = self.solver.solve(self.image, self.start_point, self.end_point)
+        self.image.reset_result()
+        self.solver.solve(self.image, self.start_point, self.end_point)
         EVENT_PROCESSOR.emit_event("UpdateImage")
 
     def setup_listeners(self):

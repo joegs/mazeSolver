@@ -35,3 +35,6 @@ class MazeImage:
 
     def resize(self, size: Tuple[int, int]) -> np.ndarray:
         self.pixels = cv2.resize(self.pixels, size)
+
+    def reset_result(self):
+        self.result = np.copy(self.pixels)
