@@ -2,13 +2,14 @@ from PIL import Image, ImageTk
 import cv2
 import numpy as np
 from typing import Tuple, Optional
+import time
 
 
 class MazeImage:
     def __init__(self, image_path: str):
         self.pixels: np.ndarray
         self.bw_pixels: np.ndarray
-        self.overlay: np.ndarray
+        self.result: np.ndarray
         self.load_image(image_path)
 
     def load_image(self, image_path: str):
@@ -18,22 +19,10 @@ class MazeImage:
         rgb_pixels = cv2.cvtColor(pixels, cv2.COLOR_BGR2RGB)
         self.pixels = rgb_pixels
         self.bw_pixels = bw_pixels
-        self.overlay = np.zeros_like(self.pixels)
-
-    def is_black_pixel(self, pixel: np.array):
-        return tuple(pixel) == (0, 0, 0)
-
-    def apply_overlay(self):
-        pixels = np.copy(self.pixels)
-        for y, _ in enumerate(self.overlay):
-            for x, pixel in enumerate(self.overlay[y]):
-                if self.is_black_pixel(pixel):
-                    continue
-                pixels[y, x] = pixel
-        return pixels
+        self.result = np.copy(self.pixels)
 
     def get_tk_image(self, size: Optional[Tuple[int, int]] = None) -> ImageTk.PhotoImage:
-        pixels = self.apply_overlay()
+        pixels = self.result
         if size:
             pixels = cv2.resize(pixels, size)
         image = Image.fromarray(pixels)

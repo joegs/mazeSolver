@@ -25,14 +25,11 @@ class ImageArea(GuiElement):
         super().__init__(parent)
         self.label = ttk.Label(self.frame)
         self.image = image
-        self.listener = EventListener("Image Changed")
-        self.update_listener = EventListener("UpdateImage")
 
     def change_image(self, image_path: str):
         self.image.load_image(image_path)
         self.update_image()
 
-    # TODO force tk update here
     def update_image(self):
         tk_image = self.image.get_tk_image(self.IMAGE_SIZE)
         self.label.configure(image=tk_image)
@@ -122,6 +119,16 @@ class Application:
         self.root.rowconfigure(0, weight=1)
         self.control_area.grid(column=0, row=0, sticky="NSWE")
         self.image_area.grid(column=1, row=0)
+        self.setup_listeners()
 
     def start(self):
         self.root.mainloop()
+
+    def _update_gui(self):
+        EVENT_PROCESSOR.emit_event("UpdateImage")
+        self.root.update()
+
+    def setup_listeners(self):
+        update_gui_listener = EventListener("UpdateGui")
+        EVENT_PROCESSOR.register_listener(update_gui_listener)
+        update_gui_listener.receive_event = self._update_gui
