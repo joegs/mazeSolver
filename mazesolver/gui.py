@@ -31,7 +31,16 @@ class ImageArea(GuiElement):
         self.update_image()
 
     def update_image(self):
-        tk_image = self.image.get_tk_image(self.IMAGE_SIZE)
+        width, height, _ = self.image.pixels.shape
+        ratio = width / height
+        if width > height:
+            scaled_width = self.IMAGE_SIZE[0]
+            scaled_height = int(scaled_width * ratio)
+        else:
+            scaled_height = self.IMAGE_SIZE[1]
+            scaled_width = int(scaled_height / ratio)
+        size = (scaled_width, scaled_height)
+        tk_image = self.image.get_tk_image(size)
         self.label.configure(image=tk_image)
         self.label.image = tk_image
 
