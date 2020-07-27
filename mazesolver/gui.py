@@ -38,7 +38,10 @@ class ImageArea(GuiElement):
     def _image_clicked(self, event):
         x = event.x
         y = event.y
-        EVENT_PROCESSOR.emit_event("ImageClicked", x=x, y=y)
+        width, height, _ = self.image.pixels.shape
+        real_x = int(x * (width / self.IMAGE_SIZE[0]))
+        real_y = int(y * (width / self.IMAGE_SIZE[1]))
+        EVENT_PROCESSOR.emit_event("ImageClicked", x=real_x, y=real_y)
 
     def setup(self):
         self.frame.configure(padding=20)

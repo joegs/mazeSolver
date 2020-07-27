@@ -25,6 +25,8 @@ class Solver:
             image.result[x] = self.SOLUTION_COLOR
 
     def solve(self, image: MazeImage, start: Tuple[int, int], end: Tuple[int, int]):
+        start = (start[1], start[0])
+        end = (end[1], end[0])
         width, height, _ = image.pixels.shape
         queue = [[start]]
         iterations = 1

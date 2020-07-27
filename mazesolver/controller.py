@@ -23,7 +23,7 @@ class Controller:
         self.point_change = ""
 
     def _solve_maze(self):
-        x = self.solver.solve(self.image, (0, 0), (280, 380))
+        x = self.solver.solve(self.image, self.start_point, self.end_point)
         EVENT_PROCESSOR.emit_event("UpdateImage")
 
     def setup_listeners(self):
