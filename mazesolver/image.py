@@ -38,3 +38,9 @@ class MazeImage:
 
     def reset_result(self):
         self.result = np.copy(self.pixels)
+
+    def mark_point(
+        self, point: Tuple[int, int], color: Tuple[int, int, int] = (0, 255, 0), size: int = 2,
+    ):
+        x, y = point
+        self.result[y : y + size, x : x + size] = color
