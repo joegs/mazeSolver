@@ -27,7 +27,7 @@ class Solver:
     def solve(self, image: MazeImage, start: Tuple[int, int], end: Tuple[int, int]):
         start = (start[1], start[0])
         end = (end[1], end[0])
-        width, height, _ = image.pixels.shape
+        height, width, _ = image.pixels.shape
         queue = [[start]]
         iterations = 1
         start_time = time.time()
@@ -39,7 +39,7 @@ class Solver:
                 return path
             adjacent_pixels = self.get_adjacent_pixels(pixel)
             for p in adjacent_pixels:
-                x, y = p
+                y, x = p
                 if x < 0 or y < 0 or x >= width or y >= height:
                     continue
                 if image.bw_pixels[p] == 0:

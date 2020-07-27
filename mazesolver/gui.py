@@ -30,16 +30,20 @@ class ImageArea(GuiElement):
         self.image.load_image(image_path)
         self.update_image()
 
-    def update_image(self):
-        width, height, _ = self.image.pixels.shape
+    def get_scaled_size(self):
+        height, width, _ = self.image.pixels.shape
         ratio = width / height
         if width > height:
             scaled_width = self.IMAGE_SIZE[0]
-            scaled_height = int(scaled_width * ratio)
+            scaled_height = int(scaled_width / ratio)
         else:
             scaled_height = self.IMAGE_SIZE[1]
-            scaled_width = int(scaled_height / ratio)
+            scaled_width = int(scaled_height * ratio)
         size = (scaled_width, scaled_height)
+        return size
+
+    def update_image(self):
+        size = self.get_scaled_size()
         tk_image = self.image.get_tk_image(size)
         self.label.configure(image=tk_image)
         self.label.image = tk_image
@@ -47,9 +51,10 @@ class ImageArea(GuiElement):
     def _image_clicked(self, event):
         x = event.x
         y = event.y
-        width, height, _ = self.image.pixels.shape
-        real_x = int(x * (width / self.IMAGE_SIZE[0]))
-        real_y = int(y * (width / self.IMAGE_SIZE[1]))
+        size = self.get_scaled_size()
+        height, width, _ = self.image.pixels.shape
+        real_x = int(x * (width / size[0]))
+        real_y = int(y * (height / size[1]))
         EVENT_PROCESSOR.emit_event("ImageClicked", x=real_x, y=real_y)
 
     def setup(self):
@@ -60,7 +65,7 @@ class ImageArea(GuiElement):
         self.setup_listeners()
 
     def setup_listeners(self):
-        change_image_listener = EventListener("Image Changed")
+        change_image_listener = EventListener("ImageChanged")
         update_image_listener = EventListener("UpdateImage")
         EVENT_PROCESSOR.register_listener(change_image_listener)
         EVENT_PROCESSOR.register_listener(update_image_listener)
@@ -87,7 +92,7 @@ class ControlArea(GuiElement):
     def _select_image_command(self):
         filename = filedialog.askopenfilename(title="Select an Image")
         self.image_filename = filename
-        EVENT_PROCESSOR.emit_event("Image Changed", image_path=filename)
+        EVENT_PROCESSOR.emit_event("ImageChanged", image_path=filename)
 
     def _create_image_load_button(self):
         button = ttk.Button(self.frame, text="Load Image", command=self._select_image_command)
