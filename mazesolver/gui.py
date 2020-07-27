@@ -135,7 +135,7 @@ class Application:
         self.root.minsize(640, 480)
         self.root.rowconfigure(0, weight=1)
         self.control_area.grid(column=0, row=0, sticky="NSWE")
-        self.image_area.grid(column=1, row=0)
+        self.image_area.grid(column=1, row=0, sticky="NW")
         self.setup_listeners()
 
     def start(self):
