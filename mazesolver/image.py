@@ -27,6 +27,8 @@ class MazeImage:
         return size
 
     def load_image(self, image_path: str):
+        if not image_path:
+            return
         self.pixels = cv2.imread(image_path, cv2.IMREAD_COLOR)
         scaled_size = self.get_scaled_size()
         self.pixels = cv2.resize(self.pixels, scaled_size)
