@@ -1,9 +1,10 @@
 class EventListener:
-    def __init__(self, topic: str):
+    def __init__(self, topic: str, function=None):
+        self.function = function
         self.topic = topic
 
     def receive_event(self, *args, **kwargs):
-        pass
+        self.function(*args, **kwargs)
 
 
 class EventProcessor:

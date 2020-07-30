@@ -47,18 +47,12 @@ class Controller:
         self.framerate = integer_framerate
 
     def setup_listeners(self):
-        position_listener = EventListener("PointChange")
-        image_listener = EventListener("ImageClicked")
-        solve_listener = EventListener("SolveMaze")
-        image_changed_listener = EventListener("ImageChanged")
-        framerate_listener = EventListener("FramerateChanged")
-        EVENT_PROCESSOR.register_listener(position_listener)
-        EVENT_PROCESSOR.register_listener(image_listener)
-        EVENT_PROCESSOR.register_listener(solve_listener)
-        EVENT_PROCESSOR.register_listener(image_changed_listener)
-        EVENT_PROCESSOR.register_listener(framerate_listener)
-        position_listener.receive_event = self._point_change
-        image_listener.receive_event = self._image_clicked
-        solve_listener.receive_event = self._solve_maze
-        image_changed_listener.receive_event = self._reset_points
-        framerate_listener.receive_event = self._change_framerate
+        listeners = [
+            EventListener("PointChange", self._point_change),
+            EventListener("ImageClicked", self._image_clicked),
+            EventListener("SolveMaze", self._solve_maze),
+            EventListener("ImageChanged", self._reset_points),
+            EventListener("FramerateChanged", self._change_framerate),
+        ]
+        for listener in listeners:
+            EVENT_PROCESSOR.register_listener(listener)

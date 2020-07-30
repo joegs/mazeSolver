@@ -65,12 +65,12 @@ class ImageArea(GuiElement):
         self.setup_listeners()
 
     def setup_listeners(self):
-        change_image_listener = EventListener("ImageChanged")
-        update_image_listener = EventListener("UpdateImage")
-        EVENT_PROCESSOR.register_listener(change_image_listener)
-        EVENT_PROCESSOR.register_listener(update_image_listener)
-        change_image_listener.receive_event = self.change_image
-        update_image_listener.receive_event = self.update_image
+        listeners = [
+            EventListener("ImageChanged", function=self.change_image),
+            EventListener("UpdateImage", function=self.update_image),
+        ]
+        for listener in listeners:
+            EVENT_PROCESSOR.register_listener(listener)
 
 
 class FramerateControl(GuiElement):
@@ -81,7 +81,7 @@ class FramerateControl(GuiElement):
         self.string_var = tk.StringVar()
 
     def reset(self):
-        self.string_var.set("5")
+        self.string_var.set("20")
 
     def _entry_changed(self, *args):
         framerate = self.string_var.get()
@@ -169,6 +169,8 @@ class Application:
         self.root.update()
 
     def setup_listeners(self):
-        update_gui_listener = EventListener("UpdateGui")
-        EVENT_PROCESSOR.register_listener(update_gui_listener)
-        update_gui_listener.receive_event = self._update_gui
+        listeners = [
+            EventListener("UpdateGui", function=self._update_gui),
+        ]
+        for listener in listeners:
+            EVENT_PROCESSOR.register_listener(listener)
