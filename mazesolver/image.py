@@ -8,11 +8,10 @@ import time
 class MazeImage:
     DEFAULT_SIZE = (300, 300)
 
-    def __init__(self, image_path: str):
+    def __init__(self):
         self.pixels: np.ndarray
         self.bw_pixels: np.ndarray
         self.result: np.ndarray
-        self.load_image(image_path)
 
     def get_scaled_size(self):
         height, width, _ = self.pixels.shape

@@ -1,15 +1,17 @@
 from mazesolver.event import EventListener, EVENT_PROCESSOR
 from mazesolver.solver import Solver
+from mazesolver.gui import Application
 from mazesolver.image import MazeImage
 
 
 class Controller:
-    def __init__(self, image: MazeImage):
-        self.image = image
+    def __init__(self):
         self.start_point = (0, 0)
         self.end_point = (0, 0)
         self.point_change = ""
         self.framerate = 20
+        self.image = MazeImage()
+        self.application = Application(self.image)
         self.solver = Solver()
         self.setup_listeners()
 
@@ -56,3 +58,6 @@ class Controller:
         ]
         for listener in listeners:
             EVENT_PROCESSOR.register_listener(listener)
+
+    def start(self):
+        self.application.start()

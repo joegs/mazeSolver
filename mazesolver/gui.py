@@ -61,7 +61,6 @@ class ImageArea(GuiElement):
         self.frame.configure(padding=20)
         self.label.grid(column=0, row=0)
         self.label.bind("<Button-1>", self._image_clicked)
-        self.update_image()
         self.setup_listeners()
 
     def setup_listeners(self):
