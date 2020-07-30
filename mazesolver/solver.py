@@ -24,7 +24,7 @@ class Solver:
         for x in path:
             image.result[x] = self.SOLUTION_COLOR
 
-    def solve(self, image: MazeImage, start: Tuple[int, int], end: Tuple[int, int]):
+    def solve(self, image: MazeImage, start: Tuple[int, int], end: Tuple[int, int], framerate=20):
         start = (start[1], start[0])
         end = (end[1], end[0])
         height, width, _ = image.pixels.shape
@@ -51,6 +51,6 @@ class Solver:
                     queue.append(new_path)
                     iterations += 1
             end_time = time.time()
-            if end_time - start_time > 1 / 20:
+            if end_time - start_time > 1 / framerate:
                 start_time = time.time()
                 EVENT_PROCESSOR.emit_event("UpdateGui")

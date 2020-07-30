@@ -73,6 +73,27 @@ class ImageArea(GuiElement):
         update_image_listener.receive_event = self.update_image
 
 
+class FramerateControl(GuiElement):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.label = ttk.Label(self.frame, text="Framerate:")
+        self.entry = ttk.Entry(self.frame, width=6)
+        self.string_var = tk.StringVar()
+
+    def reset(self):
+        self.string_var.set("5")
+
+    def _entry_changed(self, *args):
+        framerate = self.string_var.get()
+        EVENT_PROCESSOR.emit_event("FramerateChanged", framerate=framerate)
+
+    def setup(self):
+        self.label.grid(column=0, row=0, padx=(0, 10))
+        self.entry.grid(column=1, row=0)
+        self.entry.configure(textvariable=self.string_var)
+        self.string_var.trace_add("write", self._entry_changed)
+
+
 class ControlArea(GuiElement):
     def __init__(self, parent):
         super().__init__(parent)
@@ -80,6 +101,7 @@ class ControlArea(GuiElement):
         self.solve_button = self._create_solve_button()
         self.start_point_button = self._create_start_point_button()
         self.end_point_button = self._create_end_point_button()
+        self.framerate_control = FramerateControl(self.frame)
         self.image_filename = ""
 
     def setup(self):
@@ -87,7 +109,8 @@ class ControlArea(GuiElement):
         self.load_image_button.grid(column=0, row=0, sticky="NWE", pady=(0, 10))
         self.solve_button.grid(column=0, row=1, sticky="NWE", pady=(0, 10))
         self.start_point_button.grid(column=0, row=2, sticky="NWE", pady=(0, 10))
-        self.end_point_button.grid(column=0, row=3, sticky="NWE")
+        self.end_point_button.grid(column=0, row=3, sticky="NWE", pady=(0, 10))
+        self.framerate_control.grid(column=0, row=4, sticky="NSWE", pady=(0, 10))
 
     def _select_image_command(self):
         filename = filedialog.askopenfilename(title="Select an Image")
