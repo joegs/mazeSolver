@@ -28,10 +28,11 @@ class MazeImage:
         if not image_path:
             return
         self.pixels = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        self.pixels = cv2.cvtColor(self.pixels, cv2.COLOR_BGR2RGB)
         scaled_size = self.get_scaled_size()
         self.pixels = cv2.resize(self.pixels, scaled_size)
-        bw_pixels = cv2.cvtColor(self.pixels, cv2.COLOR_BGR2GRAY)
-        _, bw_pixels = cv2.threshold(bw_pixels, 150, 255, cv2.THRESH_BINARY)
+        bw_pixels = cv2.cvtColor(self.pixels, cv2.COLOR_RGB2GRAY)
+        _, bw_pixels = cv2.threshold(bw_pixels, 200, 255, cv2.THRESH_BINARY)
         self.bw_pixels = bw_pixels
         self.result = np.copy(self.pixels)
 
