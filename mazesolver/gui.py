@@ -72,6 +72,57 @@ class ImageArea(GuiElement):
             EVENT_PROCESSOR.register_listener(listener)
 
 
+class ImageControl(GuiElement):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.button = ttk.Button(self.frame, text="Load Image")
+
+    def _select_image_command(self):
+        filename = filedialog.askopenfilename(title="Select an Image")
+        if not filename:
+            return
+        EVENT_PROCESSOR.emit_event("ImageChanged", image_path=filename)
+
+    def setup(self):
+        self.frame.columnconfigure(0, weight=1)
+        self.button.grid(column=0, row=0, sticky="WE")
+        self.button.configure(command=self._select_image_command)
+
+
+class SolveControl(GuiElement):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.button = ttk.Button(self.frame, text="Solve")
+
+    def _solve_maze_command(self):
+        EVENT_PROCESSOR.emit_event("SolveMaze")
+
+    def setup(self):
+        self.frame.columnconfigure(0, weight=1)
+        self.button.grid(column=0, row=0, sticky="WE")
+        self.button.configure(command=self._solve_maze_command)
+
+
+class PointsControl(GuiElement):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.start_button = ttk.Button(self.frame, text="Set Start Point")
+        self.end_button = ttk.Button(self.frame, text="Set End Point")
+
+    def _start_point_command(self):
+        EVENT_PROCESSOR.emit_event("PointChange", kind="start")
+
+    def _end_point_command(self):
+        EVENT_PROCESSOR.emit_event("PointChange", kind="end")
+
+    def setup(self):
+        self.frame.columnconfigure(0, weight=1)
+        self.start_button.grid(column=0, row=0, sticky="WE", pady=(0, 10))
+        self.end_button.grid(column=0, row=1, sticky="WE")
+        self.start_button.configure(command=self._start_point_command)
+        self.end_button.configure(command=self._end_point_command)
+
+
 class FramerateControl(GuiElement):
     def __init__(self, parent):
         super().__init__(parent)
@@ -121,54 +172,19 @@ class ResolutionControl(GuiElement):
 class ControlArea(GuiElement):
     def __init__(self, parent):
         super().__init__(parent)
-        self.load_image_button = self._create_image_load_button()
-        self.solve_button = self._create_solve_button()
-        self.start_point_button = self._create_start_point_button()
-        self.end_point_button = self._create_end_point_button()
+        self.image_control = ImageControl(self.frame)
+        self.solve_control = SolveControl(self.frame)
+        self.points_control = PointsControl(self.frame)
         self.framerate_control = FramerateControl(self.frame)
         self.resolution_control = ResolutionControl(self.frame)
-        self.image_filename = ""
 
     def setup(self):
         self.frame.configure(padding=20)
-        self.load_image_button.grid(column=0, row=0, sticky="NWE", pady=(0, 10))
-        self.solve_button.grid(column=0, row=1, sticky="NWE", pady=(0, 10))
-        self.start_point_button.grid(column=0, row=2, sticky="NWE", pady=(0, 10))
-        self.end_point_button.grid(column=0, row=3, sticky="NWE", pady=(0, 10))
-        self.framerate_control.grid(column=0, row=4, sticky="NWE", pady=(0, 10))
-        self.resolution_control.grid(column=0, row=5, sticky="NWE", pady=(0, 10))
-
-    def _select_image_command(self):
-        filename = filedialog.askopenfilename(title="Select an Image")
-        self.image_filename = filename
-        EVENT_PROCESSOR.emit_event("ImageChanged", image_path=filename)
-
-    def _create_image_load_button(self):
-        button = ttk.Button(self.frame, text="Load Image", command=self._select_image_command)
-        return button
-
-    def _set_start_point_command(self):
-        EVENT_PROCESSOR.emit_event("PointChange", kind="start")
-
-    def _create_start_point_button(self):
-        button = ttk.Button(
-            self.frame, text="Set Start Point", command=self._set_start_point_command
-        )
-        return button
-
-    def _set_end_point_command(self):
-        EVENT_PROCESSOR.emit_event("PointChange", kind="end")
-
-    def _create_end_point_button(self):
-        button = ttk.Button(self.frame, text="Set End Point", command=self._set_end_point_command)
-        return button
-
-    def _solve_maze_command(self):
-        EVENT_PROCESSOR.emit_event("SolveMaze")
-
-    def _create_solve_button(self):
-        button = ttk.Button(self.frame, text="Solve", command=self._solve_maze_command)
-        return button
+        self.image_control.grid(column=0, row=0, sticky="NWE", pady=(0, 10))
+        self.solve_control.grid(column=0, row=1, sticky="NWE", pady=(0, 10))
+        self.points_control.grid(column=0, row=2, sticky="NWE", pady=(0, 10))
+        self.framerate_control.grid(column=0, row=3, sticky="NWE", pady=(0, 10))
+        self.resolution_control.grid(column=0, row=4, sticky="NWE", pady=(0, 10))
 
 
 class Application:
