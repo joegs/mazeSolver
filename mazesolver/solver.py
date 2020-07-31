@@ -36,6 +36,7 @@ class Solver:
             pixel = path[-1]
             if pixel == end:
                 self.mark_solution(path, image)
+                EVENT_PROCESSOR.emit_event("UpdateGui")
                 return path
             adjacent_pixels = self.get_adjacent_pixels(pixel)
             for p in adjacent_pixels:

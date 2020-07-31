@@ -33,7 +33,6 @@ class Controller:
     def _solve_maze(self):
         self.image.reset_result()
         self.solver.solve(self.image, self.start_point, self.end_point, self.framerate)
-        EVENT_PROCESSOR.emit_event("UpdateImage")
 
     def _reset_points(self, image_path):
         self.start_point = (0, 0)
