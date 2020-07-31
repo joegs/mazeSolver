@@ -6,9 +6,8 @@ import time
 
 
 class MazeImage:
-    DEFAULT_SIZE = (300, 300)
-
-    def __init__(self):
+    def __init__(self, scaled_resolution: int = 300):
+        self.scaled_resolution = scaled_resolution
         self.pixels: np.ndarray
         self.bw_pixels: np.ndarray
         self.result: np.ndarray
@@ -17,10 +16,10 @@ class MazeImage:
         height, width, _ = self.pixels.shape
         ratio = width / height
         if width > height:
-            scaled_width = self.DEFAULT_SIZE[0]
+            scaled_width = self.scaled_resolution
             scaled_height = int(scaled_width / ratio)
         else:
-            scaled_height = self.DEFAULT_SIZE[1]
+            scaled_height = self.scaled_resolution
             scaled_width = int(scaled_height * ratio)
         size = (scaled_width, scaled_height)
         return size

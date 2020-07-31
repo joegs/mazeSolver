@@ -48,6 +48,15 @@ class Controller:
             return
         self.framerate = integer_framerate
 
+    def _change_resolution(self, resolution: str):
+        try:
+            integer_resolution = int(resolution)
+            if integer_resolution < 50:
+                return
+        except ValueError:
+            return
+        self.image.scaled_resolution = integer_resolution
+
     def setup_listeners(self):
         listeners = [
             EventListener("PointChange", self._point_change),
@@ -55,6 +64,7 @@ class Controller:
             EventListener("SolveMaze", self._solve_maze),
             EventListener("ImageChanged", self._reset_points),
             EventListener("FramerateChanged", self._change_framerate),
+            EventListener("ResolutionChanged", self._change_resolution),
         ]
         for listener in listeners:
             EVENT_PROCESSOR.register_listener(listener)
