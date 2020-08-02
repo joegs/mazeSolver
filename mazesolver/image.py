@@ -8,9 +8,9 @@ import time
 class MazeImage:
     def __init__(self, scaled_resolution: int = 300):
         self.scaled_resolution = scaled_resolution
-        self.pixels: np.ndarray
-        self.bw_pixels: np.ndarray
-        self.result: np.ndarray
+        self.pixels: np.ndarray = None
+        self.bw_pixels: np.ndarray = None
+        self.result: np.ndarray = None
 
     def get_scaled_size(self):
         height, width, _ = self.pixels.shape

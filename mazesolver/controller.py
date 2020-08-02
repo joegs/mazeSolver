@@ -31,6 +31,8 @@ class Controller:
         self.point_change = ""
 
     def _solve_maze(self):
+        if self.image.result is None:
+            return
         self.image.reset_result()
         self.solver.solve(self.image, self.start_point, self.end_point, self.framerate)
 
