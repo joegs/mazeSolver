@@ -26,7 +26,7 @@ class Controller:
         if self.point_change:
             self.image.reset_result()
             self.image.mark_point(self.start_point, color=(255, 0, 0), size=3)
-            self.image.mark_point(self.end_point, color=(255, 255, 0), size=3)
+            self.image.mark_point(self.end_point, color=(255, 0, 255), size=3)
             EVENT_PROCESSOR.emit_event("UpdateImage")
         self.point_change = ""
 
