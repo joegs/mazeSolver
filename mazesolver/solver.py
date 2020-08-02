@@ -17,8 +17,8 @@ class Solver:
         image.result[pixel] = self.VISITED_COLOR
 
     def is_unvisited_pixel(self, pixel, image) -> bool:
-        r, g, b = image.result[pixel]
-        return (r, g, b) != self.VISITED_COLOR
+        p = tuple(image.result[pixel])
+        return p != self.VISITED_COLOR and p != self.SOLUTION_COLOR
 
     def mark_solution(self, path, image):
         for x in path:
