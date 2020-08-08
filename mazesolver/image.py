@@ -1,8 +1,10 @@
-from PIL import Image, ImageTk
+import time
+from typing import Optional, Tuple
+
 import cv2
 import numpy as np
-from typing import Tuple, Optional
-import time
+
+from PIL import Image, ImageTk
 
 
 class MazeImage:
@@ -36,7 +38,9 @@ class MazeImage:
         self.bw_pixels = bw_pixels
         self.result = np.copy(self.pixels)
 
-    def get_tk_image(self, size: Optional[Tuple[int, int]] = None) -> ImageTk.PhotoImage:
+    def get_tk_image(
+        self, size: Optional[Tuple[int, int]] = None
+    ) -> ImageTk.PhotoImage:
         pixels = self.result
         if size:
             pixels = cv2.resize(pixels, size)
@@ -55,7 +59,10 @@ class MazeImage:
         self.result = np.copy(self.pixels)
 
     def mark_point(
-        self, point: Tuple[int, int], color: Tuple[int, int, int] = (0, 255, 0), size: int = 2,
+        self,
+        point: Tuple[int, int],
+        color: Tuple[int, int, int] = (0, 255, 0),
+        size: int = 2,
     ):
         x, y = point
         self.result[y : y + size, x : x + size] = color

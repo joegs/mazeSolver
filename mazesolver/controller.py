@@ -1,7 +1,7 @@
-from mazesolver.event import EventListener, EVENT_PROCESSOR
-from mazesolver.solver import Solver
+from mazesolver.event import EVENT_PROCESSOR, EventListener
 from mazesolver.gui import Application
 from mazesolver.image import MazeImage
+from mazesolver.solver import Solver
 
 
 class Controller:

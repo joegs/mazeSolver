@@ -1,8 +1,10 @@
-from mazesolver.image import MazeImage
-from typing import Tuple
-import numpy as np
-from mazesolver.event import EVENT_PROCESSOR
 import time
+from typing import Tuple
+
+import numpy as np
+
+from mazesolver.event import EVENT_PROCESSOR
+from mazesolver.image import MazeImage
 
 
 class Solver:
@@ -24,7 +26,13 @@ class Solver:
         for x in path:
             image.result[x] = self.SOLUTION_COLOR
 
-    def solve(self, image: MazeImage, start: Tuple[int, int], end: Tuple[int, int], framerate=20):
+    def solve(
+        self,
+        image: MazeImage,
+        start: Tuple[int, int],
+        end: Tuple[int, int],
+        framerate=20,
+    ):
         start = (start[1], start[0])
         end = (end[1], end[0])
         height, width, _ = image.pixels.shape
