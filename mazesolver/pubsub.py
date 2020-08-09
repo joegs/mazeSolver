@@ -4,8 +4,9 @@ from typing import Any, Callable, List, Optional
 
 
 class Worker(threading.Thread):
-    def __init__(self, queue: "Queue[Any]", function: Optional[Callable[..., Any]]):
-        self.queue = queue
+    def __init__(self, function: Optional[Callable[..., Any]]):
+        super().__init__(daemon=True)
+        self.queue = None
         self.receive = threading.Event()
         self.stop = threading.Event()
         self.function = function
@@ -28,7 +29,7 @@ class Worker(threading.Thread):
             try:
                 self.queue.get_nowait()
             except Empty:
-                pass
+                return
 
     def _stop(self):
         self.clear_queue()
@@ -41,18 +42,22 @@ class Subscriber:
     def __init__(
         self,
         topic: str,
+        *,
         function: Optional[Callable[..., Any]] = None,
         worker: Optional[Worker] = None,
     ):
         self.topic = topic
+        self.queue: "Queue[Any]" = Queue()
         self.function = function
         self.worker = worker
-        self.queue: "Queue[Any]" = Queue()
         if self.worker is not None:
+            self.worker.queue = self.queue
             self.worker.start()
 
     def queue_event(self, *args, **kwargs):
         self.queue.put((args, kwargs), block=False)
+        if self.worker is not None:
+            self.worker.receive.set()
 
     def _process_function(self):
         while True:
@@ -62,14 +67,9 @@ class Subscriber:
             except Empty:
                 return
 
-    def _process_worker(self):
-        self.worker.receive.set()
-
     def process_events(self):
         if self.function is not None:
             self._process_function()
-        elif self.worker is not None:
-            self._process_worker()
 
 
 class Publisher:
@@ -79,7 +79,14 @@ class Publisher:
     def register_subscriber(self, subscriber: Subscriber):
         self.subscribers.append(subscriber)
 
+    def process_events(self):
+        for subscriber in self.subscribers:
+            subscriber.process_events()
+
     def emit_event(self, topic, *args, **kwargs):
         for subscriber in self.subscribers:
             if topic == subscriber.topic:
                 subscriber.queue_event(*args, **kwargs)
+
+
+PUBLISHER = Publisher()

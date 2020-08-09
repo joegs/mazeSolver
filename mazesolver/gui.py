@@ -2,8 +2,8 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 from typing import List
 
-from mazesolver.event import EVENT_PROCESSOR, EventListener
 from mazesolver.image import MazeImage
+from mazesolver.pubsub import PUBLISHER, Subscriber, Worker
 
 
 class GuiElement:
@@ -43,6 +43,8 @@ class ImageArea(GuiElement):
         return size
 
     def update_image(self):
+        if self.image.pixels is None:
+            return
         size = self.get_scaled_size()
         tk_image = self.image.get_tk_image(size)
         self.label.configure(image=tk_image)
@@ -55,21 +57,21 @@ class ImageArea(GuiElement):
         height, width, _ = self.image.pixels.shape
         real_x = int(x * (width / size[0]))
         real_y = int(y * (height / size[1]))
-        EVENT_PROCESSOR.emit_event("ImageClicked", x=real_x, y=real_y)
+        PUBLISHER.emit_event("ImageClicked", x=real_x, y=real_y)
 
     def setup(self):
         self.frame.configure(padding=20)
         self.label.grid(column=0, row=0)
         self.label.bind("<Button-1>", self._image_clicked)
-        self.setup_listeners()
+        self.setup_subscribers()
 
-    def setup_listeners(self):
-        listeners = [
-            EventListener("ImageChanged", function=self.change_image),
-            EventListener("UpdateImage", function=self.update_image),
+    def setup_subscribers(self):
+        subscribers = [
+            Subscriber("ImageChanged", function=self.change_image),
+            Subscriber("UpdateImage", function=self.update_image),
         ]
-        for listener in listeners:
-            EVENT_PROCESSOR.register_listener(listener)
+        for subscriber in subscribers:
+            PUBLISHER.register_subscriber(subscriber)
 
 
 class ImageControl(GuiElement):
@@ -81,7 +83,7 @@ class ImageControl(GuiElement):
         filename = filedialog.askopenfilename(title="Select an Image")
         if not filename:
             return
-        EVENT_PROCESSOR.emit_event("ImageChanged", image_path=filename)
+        PUBLISHER.emit_event("ImageChanged", image_path=filename)
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
@@ -93,14 +95,20 @@ class SolveControl(GuiElement):
     def __init__(self, parent):
         super().__init__(parent)
         self.button = ttk.Button(self.frame, text="Solve")
+        self.button2 = ttk.Button(self.frame, text="Stop")
 
     def _solve_maze_command(self):
-        EVENT_PROCESSOR.emit_event("SolveMaze")
+        PUBLISHER.emit_event("SolveMaze")
+
+    def _stop_command(self):
+        PUBLISHER.emit_event("StopSolve")
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
         self.button.grid(column=0, row=0, sticky="WE")
+        self.button2.grid(column=0, row=1, sticky="WE")
         self.button.configure(command=self._solve_maze_command)
+        self.button2.configure(command=self._stop_command)
 
 
 class PointsControl(GuiElement):
@@ -110,10 +118,10 @@ class PointsControl(GuiElement):
         self.end_button = ttk.Button(self.frame, text="Set End Point")
 
     def _start_point_command(self):
-        EVENT_PROCESSOR.emit_event("PointChange", kind="start")
+        PUBLISHER.emit_event("PointChange", kind="start")
 
     def _end_point_command(self):
-        EVENT_PROCESSOR.emit_event("PointChange", kind="end")
+        PUBLISHER.emit_event("PointChange", kind="end")
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
@@ -121,29 +129,6 @@ class PointsControl(GuiElement):
         self.end_button.grid(column=0, row=1, sticky="WE")
         self.start_button.configure(command=self._start_point_command)
         self.end_button.configure(command=self._end_point_command)
-
-
-class FramerateControl(GuiElement):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.label = ttk.Label(self.frame, text="Framerate")
-        self.entry = ttk.Entry(self.frame, width=10)
-        self.string_var = tk.StringVar(value="20")
-
-    def reset(self):
-        self.string_var.set("20")
-
-    def _entry_changed(self, *args):
-        framerate = self.string_var.get()
-        EVENT_PROCESSOR.emit_event("FramerateChanged", framerate=framerate)
-
-    def setup(self):
-        self.frame.columnconfigure(0, minsize=100)
-        self.frame.columnconfigure(1, weight=1)
-        self.label.grid(column=0, row=0, padx=(0, 10), sticky="W")
-        self.entry.grid(column=1, row=0, sticky="WE")
-        self.entry.configure(textvariable=self.string_var)
-        self.string_var.trace_add("write", self._entry_changed)
 
 
 class ResolutionControl(GuiElement):
@@ -158,7 +143,7 @@ class ResolutionControl(GuiElement):
 
     def _entry_changed(self, *args):
         resolution = self.string_var.get()
-        EVENT_PROCESSOR.emit_event("ResolutionChanged", resolution=resolution)
+        PUBLISHER.emit_event("ResolutionChanged", resolution=resolution)
 
     def setup(self):
         self.frame.columnconfigure(0, minsize=100)
@@ -175,7 +160,6 @@ class ControlArea(GuiElement):
         self.image_control = ImageControl(self.frame)
         self.solve_control = SolveControl(self.frame)
         self.points_control = PointsControl(self.frame)
-        self.framerate_control = FramerateControl(self.frame)
         self.resolution_control = ResolutionControl(self.frame)
 
     def setup(self):
@@ -183,8 +167,7 @@ class ControlArea(GuiElement):
         self.image_control.grid(column=0, row=0, sticky="NWE", pady=(0, 10))
         self.solve_control.grid(column=0, row=1, sticky="NWE", pady=(0, 10))
         self.points_control.grid(column=0, row=2, sticky="NWE", pady=(0, 10))
-        self.framerate_control.grid(column=0, row=3, sticky="NWE", pady=(0, 10))
-        self.resolution_control.grid(column=0, row=4, sticky="NWE", pady=(0, 10))
+        self.resolution_control.grid(column=0, row=3, sticky="NWE", pady=(0, 10))
 
 
 class Application:
@@ -199,18 +182,12 @@ class Application:
         self.root.rowconfigure(0, weight=1)
         self.control_area.grid(column=0, row=0, sticky="NSWE")
         self.image_area.grid(column=1, row=0, sticky="NW")
-        self.setup_listeners()
+
+    def periodic_refresh(self):
+        PUBLISHER.process_events()
+        self.root.update()
+        self.root.after(1000 // 60, self.periodic_refresh)
 
     def start(self):
+        self.periodic_refresh()
         self.root.mainloop()
-
-    def _update_gui(self):
-        EVENT_PROCESSOR.emit_event("UpdateImage")
-        self.root.update()
-
-    def setup_listeners(self):
-        listeners = [
-            EventListener("UpdateGui", function=self._update_gui),
-        ]
-        for listener in listeners:
-            EVENT_PROCESSOR.register_listener(listener)
