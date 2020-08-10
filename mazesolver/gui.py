@@ -67,7 +67,7 @@ class ImageArea(GuiElement):
 
     def setup_subscribers(self):
         subscribers = [
-            Subscriber("ImageChanged", function=self.change_image),
+            Subscriber("ImageChangeRequest", function=self.change_image),
             Subscriber("UpdateImage", function=self.update_image),
         ]
         for subscriber in subscribers:
@@ -83,7 +83,7 @@ class ImageControl(GuiElement):
         filename = filedialog.askopenfilename(title="Select an Image")
         if not filename:
             return
-        PUBLISHER.send_message("ImageChanged", image_path=filename)
+        PUBLISHER.send_message("ImageChangeRequest", image_path=filename)
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
@@ -124,10 +124,10 @@ class PointsControl(GuiElement):
         self.end_button = ttk.Button(self.frame, text="Set End Point")
 
     def _start_point_command(self):
-        PUBLISHER.send_message("PointChange", kind="start")
+        PUBLISHER.send_message("PointChangeRequest", kind="start")
 
     def _end_point_command(self):
-        PUBLISHER.send_message("PointChange", kind="end")
+        PUBLISHER.send_message("PointChangeRequest", kind="end")
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
@@ -149,7 +149,7 @@ class ResolutionControl(GuiElement):
 
     def _entry_changed(self, *args):
         resolution = self.string_var.get()
-        PUBLISHER.send_message("ResolutionChanged", resolution=resolution)
+        PUBLISHER.send_message("ResolutionChangeRequest", resolution=resolution)
 
     def setup(self):
         self.frame.columnconfigure(0, minsize=100)

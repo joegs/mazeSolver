@@ -63,17 +63,17 @@ class Controller:
 
     def setup_listeners(self):
         listeners = [
-            EventListener("ResolutionChanged", self._change_resolution),
+            EventListener("ResolutionChangeRequest", self._change_resolution),
         ]
         for listener in listeners:
             EVENT_PROCESSOR.register_listener(listener)
 
         subscribers = [
             Subscriber("SolveMaze", function=self._solve_maze),
-            Subscriber("PointChange", function=self._point_change),
+            Subscriber("PointChangeRequest", function=self._point_change),
             Subscriber("ImageClicked", function=self._image_clicked),
-            Subscriber("ImageChanged", function=self._reset_points),
-            Subscriber("ResolutionChanged", function=self._change_resolution),
+            Subscriber("ImageChangeRequest", function=self._reset_points),
+            Subscriber("ResolutionChangeRequest", function=self._change_resolution),
             Subscriber("StopSolve", function=self._stop_solve),
         ]
         for subscriber in subscribers:
