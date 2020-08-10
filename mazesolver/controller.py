@@ -1,8 +1,14 @@
 from mazesolver.event import EVENT_PROCESSOR, EventListener
 from mazesolver.gui import Application
 from mazesolver.image import MazeImage
+from mazesolver.pubsub import (
+    PUBLISHER,
+    THREAD_PUBLISHER,
+    Subscriber,
+    ThreadSubscriber,
+    Worker,
+)
 from mazesolver.solver import Solver
-from mazesolver.pubsub import PUBLISHER, Subscriber, Worker
 
 
 class Controller:
@@ -27,14 +33,16 @@ class Controller:
             self.image.reset_result()
             self.image.mark_point(self.start_point, color=(255, 0, 0), size=3)
             self.image.mark_point(self.end_point, color=(255, 0, 255), size=3)
-            PUBLISHER.emit_event("UpdateImage")
+            PUBLISHER.send_message("UpdateImage")
         self.point_change = ""
 
     def _solve_maze(self):
         if self.image.result is None:
             return
         self.image.reset_result()
-        PUBLISHER.emit_event("Maze", self.image, self.start_point, self.end_point)
+        THREAD_PUBLISHER.send_message(
+            "Maze", data=(self.image, self.start_point, self.end_point), start=True
+        )
 
     def _reset_points(self, image_path):
         self.start_point = (0, 0)
@@ -50,7 +58,8 @@ class Controller:
         self.image.scaled_resolution = integer_resolution
 
     def _stop_solve(self):
-        self.solver.stop.set()
+        PUBLISHER.send_message("Maze", stop=True)
+        # self.solver.output_queue.get(block=True, timeout=2)
 
     def setup_listeners(self):
         listeners = [
@@ -61,7 +70,6 @@ class Controller:
 
         subscribers = [
             Subscriber("SolveMaze", function=self._solve_maze),
-            Subscriber("Maze", worker=self.solver),
             Subscriber("PointChange", function=self._point_change),
             Subscriber("ImageClicked", function=self._image_clicked),
             Subscriber("ImageChanged", function=self._reset_points),
@@ -70,6 +78,8 @@ class Controller:
         ]
         for subscriber in subscribers:
             PUBLISHER.register_subscriber(subscriber)
+        thread_subscriber = ThreadSubscriber("Maze", worker=self.solver)
+        THREAD_PUBLISHER.register_subscriber(thread_subscriber)
 
     def start(self):
         self.application.start()

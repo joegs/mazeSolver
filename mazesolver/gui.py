@@ -3,7 +3,7 @@ from tkinter import filedialog, ttk
 from typing import List
 
 from mazesolver.image import MazeImage
-from mazesolver.pubsub import PUBLISHER, Subscriber, Worker
+from mazesolver.pubsub import PUBLISHER, THREAD_PUBLISHER, Subscriber, Worker
 
 
 class GuiElement:
@@ -57,7 +57,7 @@ class ImageArea(GuiElement):
         height, width, _ = self.image.pixels.shape
         real_x = int(x * (width / size[0]))
         real_y = int(y * (height / size[1]))
-        PUBLISHER.emit_event("ImageClicked", x=real_x, y=real_y)
+        PUBLISHER.send_message("ImageClicked", x=real_x, y=real_y)
 
     def setup(self):
         self.frame.configure(padding=20)
@@ -83,7 +83,7 @@ class ImageControl(GuiElement):
         filename = filedialog.askopenfilename(title="Select an Image")
         if not filename:
             return
-        PUBLISHER.emit_event("ImageChanged", image_path=filename)
+        PUBLISHER.send_message("ImageChanged", image_path=filename)
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
@@ -98,10 +98,10 @@ class SolveControl(GuiElement):
         self.button2 = ttk.Button(self.frame, text="Stop")
 
     def _solve_maze_command(self):
-        PUBLISHER.emit_event("SolveMaze")
+        PUBLISHER.send_message("SolveMaze")
 
     def _stop_command(self):
-        PUBLISHER.emit_event("StopSolve")
+        PUBLISHER.send_message("StopSolve")
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
@@ -118,10 +118,10 @@ class PointsControl(GuiElement):
         self.end_button = ttk.Button(self.frame, text="Set End Point")
 
     def _start_point_command(self):
-        PUBLISHER.emit_event("PointChange", kind="start")
+        PUBLISHER.send_message("PointChange", kind="start")
 
     def _end_point_command(self):
-        PUBLISHER.emit_event("PointChange", kind="end")
+        PUBLISHER.send_message("PointChange", kind="end")
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
@@ -143,7 +143,7 @@ class ResolutionControl(GuiElement):
 
     def _entry_changed(self, *args):
         resolution = self.string_var.get()
-        PUBLISHER.emit_event("ResolutionChanged", resolution=resolution)
+        PUBLISHER.send_message("ResolutionChanged", resolution=resolution)
 
     def setup(self):
         self.frame.columnconfigure(0, minsize=100)
@@ -184,9 +184,9 @@ class Application:
         self.image_area.grid(column=1, row=0, sticky="NW")
 
     def periodic_refresh(self):
-        PUBLISHER.process_events()
-        self.root.update()
-        self.root.after(1000 // 60, self.periodic_refresh)
+        PUBLISHER.process_messages()
+        THREAD_PUBLISHER.send_message("Maze", advance=True)
+        self.root.after(1000 // 120, self.periodic_refresh)
 
     def start(self):
         self.periodic_refresh()
