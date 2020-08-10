@@ -94,21 +94,27 @@ class ImageControl(GuiElement):
 class SolveControl(GuiElement):
     def __init__(self, parent):
         super().__init__(parent)
-        self.button = ttk.Button(self.frame, text="Solve")
-        self.button2 = ttk.Button(self.frame, text="Stop")
+        self.solve_button = ttk.Button(self.frame, text="Solve")
+        self.stop_button = ttk.Button(self.frame, text="Stop")
+        self.resume_button = ttk.Button(self.frame, text="Resume")
 
-    def _solve_maze_command(self):
+    def _solve_command(self):
         PUBLISHER.send_message("SolveMaze")
 
     def _stop_command(self):
         PUBLISHER.send_message("StopSolve")
 
+    def _resume_command(self):
+        PUBLISHER.send_message("ResumeMaze")
+
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
-        self.button.grid(column=0, row=0, sticky="WE")
-        self.button2.grid(column=0, row=1, sticky="WE")
-        self.button.configure(command=self._solve_maze_command)
-        self.button2.configure(command=self._stop_command)
+        self.solve_button.grid(column=0, row=0, sticky="WE", pady=(0, 10))
+        self.stop_button.grid(column=0, row=1, sticky="WE", pady=(0, 10))
+        self.resume_button.grid(column=0, row=2, sticky="WE", pady=(0, 10))
+        self.solve_button.configure(command=self._solve_command)
+        self.stop_button.configure(command=self._stop_command)
+        self.resume_button.configure(command=self._resume_command)
 
 
 class PointsControl(GuiElement):
@@ -126,7 +132,7 @@ class PointsControl(GuiElement):
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
         self.start_button.grid(column=0, row=0, sticky="WE", pady=(0, 10))
-        self.end_button.grid(column=0, row=1, sticky="WE")
+        self.end_button.grid(column=0, row=1, sticky="WE", pady=(0, 10))
         self.start_button.configure(command=self._start_point_command)
         self.end_button.configure(command=self._end_point_command)
 
@@ -165,8 +171,8 @@ class ControlArea(GuiElement):
     def setup(self):
         self.frame.configure(padding=20)
         self.image_control.grid(column=0, row=0, sticky="NWE", pady=(0, 10))
-        self.solve_control.grid(column=0, row=1, sticky="NWE", pady=(0, 10))
-        self.points_control.grid(column=0, row=2, sticky="NWE", pady=(0, 10))
+        self.points_control.grid(column=0, row=1, sticky="NWE", pady=(10, 10))
+        self.solve_control.grid(column=0, row=2, sticky="NWE", pady=(10, 10))
         self.resolution_control.grid(column=0, row=3, sticky="NWE", pady=(0, 10))
 
 
