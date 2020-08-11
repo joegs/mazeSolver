@@ -1,6 +1,8 @@
 import threading
+import multiprocessing as mp
+from multiprocessing.connection import Connection
 from queue import Empty, Queue
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Union
 
 
 class Subscriber:
@@ -18,29 +20,12 @@ class Subscriber:
             self.function(**kwargs)
 
 
-class Publisher:
-    def __init__(self):
-        self.subscribers: List[Subscriber] = []
-
-    def register_subscriber(self, subscriber: Subscriber):
-        self.subscribers.append(subscriber)
-
-    def send_message(self, topic: str, **kwargs):
-        for subscriber in self.subscribers:
-            if topic == subscriber.topic:
-                subscriber.queue_message(**kwargs)
-
-    def process_messages(self):
-        for subscriber in self.subscribers:
-            subscriber.process_messages()
-
-
-class Worker(threading.Thread):
+class ThreadWorker(threading.Thread):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.input_queue: Queue = Queue()
-        self.output_queue: Queue = Queue()
         self.received = threading.Event()
+        self.response = threading.Event()
 
     def clear_queue(self):
         while True:
@@ -51,7 +36,7 @@ class Worker(threading.Thread):
 
 
 class ThreadSubscriber:
-    def __init__(self, name: str, worker: Worker):
+    def __init__(self, name: str, worker: ThreadWorker):
         self.name = name
         self.worker = worker
         self.worker.start()
@@ -60,24 +45,81 @@ class ThreadSubscriber:
         self.worker.input_queue.put_nowait(kwargs)
         self.worker.received.set()
         if wait_for_response:
-            self.worker.output_queue.get(block=True, timeout=timeout)
+            self.worker.response.wait(timeout=timeout)
+            self.worker.response.clear()
 
 
-class ThreadPublisher:
+class MultiprocessWorker(mp.Process):
+    def __init__(self, child_pipe: Connection, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.child_pipe = child_pipe
+        self.received = mp.Event()
+        self.response = mp.Event()
+
+    def clear_queue(self):
+        while self.child_pipe.poll():
+            self.child_pipe.recv()
+
+
+class MultiprocessSubscriber:
+    def __init__(self, name: str, worker: MultiprocessWorker, parent_pipe: Connection):
+        self.name = name
+        self.parent_pipe = parent_pipe
+        self.worker = worker
+        self.worker.start()
+
+    def queue_message(self, wait_for_response: bool, timeout: float, **kwargs):
+        self.parent_pipe.send(kwargs)
+        self.worker.received.set()
+        if wait_for_response:
+            self.worker.response.wait(timeout=timeout)
+            self.worker.response.clear()
+
+
+class Publisher:
     def __init__(self):
-        self.subscribers: Dict[str, ThreadSubscriber] = {}
+        self.subscribers: List[Subscriber] = []
+        self.thread_subscribers: Dict[str, ThreadSubscriber] = {}
+        self.process_subscribers: Dict[str, MultiprocessSubscriber] = {}
 
-    def register_subscriber(self, subscriber: ThreadSubscriber):
-        self.subscribers[subscriber.name] = subscriber
+    def register_subscriber(
+        self, subscriber: Union[Subscriber, ThreadSubscriber, MultiprocessSubscriber]
+    ):
+        if isinstance(subscriber, Subscriber):
+            self.subscribers.append(subscriber)
+        elif isinstance(subscriber, ThreadSubscriber):
+            self.thread_subscribers[subscriber.name] = subscriber
+        elif isinstance(subscriber, MultiprocessSubscriber):
+            self.process_subscribers[subscriber.name] = subscriber
 
-    def send_message(
+    def send_message(self, topic: str, **kwargs):
+        for subscriber in self.subscribers:
+            if topic == subscriber.topic:
+                subscriber.queue_message(**kwargs)
+
+    def send_thread_message(
         self, name: str, wait_for_response: bool = False, timeout: float = 2, **kwargs
     ):
-        subscriber = self.subscribers.get(name, None)
+        subscriber = self.thread_subscribers.get(name, None)
         if subscriber is None:
             return
         subscriber.queue_message(wait_for_response, timeout, **kwargs)
 
+    def send_process_message(
+        self, name: str, wait_for_response: bool = False, timeout: float = 2, **kwargs
+    ):
+        subscriber = self.process_subscribers.get(name, None)
+        if subscriber is None:
+            return
+        subscriber.queue_message(wait_for_response, timeout, **kwargs)
+
+    def process_messages(self):
+        for name, subscriber in self.process_subscribers:
+            while subscriber.parent_pipe.poll():
+                kwargs = subscriber.parent_pipe.recv()
+                self.send_message(**kwargs)
+        for subscriber in self.subscribers:
+            subscriber.process_messages()
+
 
 PUBLISHER = Publisher()
-THREAD_PUBLISHER = ThreadPublisher()

@@ -3,7 +3,7 @@ from tkinter import filedialog, ttk
 from typing import List
 
 from mazesolver.image import MazeImage
-from mazesolver.pubsub import PUBLISHER, THREAD_PUBLISHER, Subscriber, Worker
+from mazesolver.pubsub import PUBLISHER, Subscriber
 
 
 class GuiElement:
@@ -191,7 +191,7 @@ class Application:
 
     def periodic_refresh(self):
         PUBLISHER.process_messages()
-        THREAD_PUBLISHER.send_message("Maze", advance=True)
+        PUBLISHER.send_thread_message("Maze", advance=True)
         self.root.after(1000 // 120, self.periodic_refresh)
 
     def start(self):

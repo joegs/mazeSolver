@@ -5,12 +5,11 @@ from typing import Tuple
 
 import numpy as np
 
-from mazesolver.event import EVENT_PROCESSOR
 from mazesolver.image import MazeImage
-from mazesolver.pubsub import PUBLISHER, Subscriber, Worker
+from mazesolver.pubsub import PUBLISHER, ThreadWorker
 
 
-class Solver(Worker):
+class Solver(ThreadWorker):
     VISITED_COLOR = (200, 200, 200)
     SOLUTION_COLOR = (0, 0, 255)
 

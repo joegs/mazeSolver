@@ -1,12 +1,9 @@
-from mazesolver.event import EVENT_PROCESSOR, EventListener
 from mazesolver.gui import Application
 from mazesolver.image import MazeImage
 from mazesolver.pubsub import (
     PUBLISHER,
-    THREAD_PUBLISHER,
     Subscriber,
     ThreadSubscriber,
-    Worker,
 )
 from mazesolver.solver import Solver
 
@@ -40,7 +37,7 @@ class Controller:
         if self.image.result is None:
             return
         self.image.reset_result()
-        THREAD_PUBLISHER.send_message(
+        PUBLISHER.send_thread_message(
             "Maze", data=(self.image, self.start_point, self.end_point), start=True
         )
 
@@ -62,24 +59,17 @@ class Controller:
         # self.solver.output_queue.get(block=True, timeout=2)
 
     def setup_listeners(self):
-        listeners = [
-            EventListener("ResolutionChangeRequest", self._change_resolution),
-        ]
-        for listener in listeners:
-            EVENT_PROCESSOR.register_listener(listener)
-
         subscribers = [
-            Subscriber("SolveMaze", function=self._solve_maze),
+            ThreadSubscriber("Maze", worker=self.solver),
             Subscriber("PointChangeRequest", function=self._point_change),
-            Subscriber("ImageClicked", function=self._image_clicked),
             Subscriber("ImageChangeRequest", function=self._reset_points),
             Subscriber("ResolutionChangeRequest", function=self._change_resolution),
+            Subscriber("ImageClicked", function=self._image_clicked),
+            Subscriber("SolveMaze", function=self._solve_maze),
             Subscriber("StopSolve", function=self._stop_solve),
         ]
         for subscriber in subscribers:
             PUBLISHER.register_subscriber(subscriber)
-        thread_subscriber = ThreadSubscriber("Maze", worker=self.solver)
-        THREAD_PUBLISHER.register_subscriber(thread_subscriber)
 
     def start(self):
         self.application.start()
