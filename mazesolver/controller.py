@@ -3,9 +3,10 @@ from mazesolver.image import MazeImage
 from mazesolver.pubsub import (
     PUBLISHER,
     Subscriber,
-    ThreadSubscriber,
+    ProcessSubscriber,
 )
 from mazesolver.solver import Solver
+import multiprocessing as mp
 
 
 class Controller:
@@ -37,7 +38,7 @@ class Controller:
         if self.image.result is None:
             return
         self.image.reset_result()
-        PUBLISHER.send_thread_message(
+        PUBLISHER.send_process_message(
             "Maze", data=(self.image, self.start_point, self.end_point), start=True
         )
 
@@ -60,7 +61,7 @@ class Controller:
 
     def setup_listeners(self):
         subscribers = [
-            ThreadSubscriber("Maze", worker=self.solver),
+            ProcessSubscriber("Maze", worker=self.solver),
             Subscriber("PointChangeRequest", function=self._point_change),
             Subscriber("ImageChangeRequest", function=self._reset_points),
             Subscriber("ResolutionChangeRequest", function=self._change_resolution),

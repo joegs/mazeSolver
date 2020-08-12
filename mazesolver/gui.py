@@ -5,6 +5,8 @@ from typing import List
 from mazesolver.image import MazeImage
 from mazesolver.pubsub import PUBLISHER, Subscriber
 
+import time
+
 
 class GuiElement:
     def __init__(self, parent):
@@ -59,6 +61,10 @@ class ImageArea(GuiElement):
         real_y = int(y * (height / size[1]))
         PUBLISHER.send_message("ImageClicked", x=real_x, y=real_y)
 
+    def replace_pixels(self, pixels):
+        self.image.result[pixels] = (255, 0, 0)
+        self.update_image()
+
     def setup(self):
         self.frame.configure(padding=20)
         self.label.grid(column=0, row=0)
@@ -69,6 +75,7 @@ class ImageArea(GuiElement):
         subscribers = [
             Subscriber("ImageChangeRequest", function=self.change_image),
             Subscriber("UpdateImage", function=self.update_image),
+            Subscriber("ReplaceImagePixels", function=self.replace_pixels),
         ]
         for subscriber in subscribers:
             PUBLISHER.register_subscriber(subscriber)
@@ -91,6 +98,8 @@ class ImageControl(GuiElement):
         self.button.configure(command=self._select_image_command)
 
 
+# TODO change the topic of the messages to make it clear
+# they are requests
 class SolveControl(GuiElement):
     def __init__(self, parent):
         super().__init__(parent)
@@ -191,8 +200,7 @@ class Application:
 
     def periodic_refresh(self):
         PUBLISHER.process_messages()
-        PUBLISHER.send_thread_message("Maze", advance=True)
-        self.root.after(1000 // 120, self.periodic_refresh)
+        self.root.after(1000 // 60, self.periodic_refresh)
 
     def start(self):
         self.periodic_refresh()
