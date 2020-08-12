@@ -60,7 +60,7 @@ class Solver(ProcessWorker):
                 self.mark_solution(path, image)
                 x = visited_array.nonzero()
                 self.output_queue.put_nowait(
-                    {"topic": "ReplaceImagePixels", "pixels": x}
+                    {"topic": "ImagePixelReplaceRequest", "pixels": x}
                 )
                 return path
             adjacent_pixels = self.get_adjacent_pixels(pixel)
@@ -77,9 +77,9 @@ class Solver(ProcessWorker):
                     queue.append(new_path)
                     iterations += 1
             end_time = time.time()
-            if end_time - start_time > 1 / 60:
+            if end_time - start_time > 1 / 40:
                 start_time = time.time()
                 x = visited_array.nonzero()
                 self.output_queue.put_nowait(
-                    {"topic": "ReplaceImagePixels", "pixels": x}
+                    {"topic": "ImagePixelReplaceRequest", "pixels": x}
                 )

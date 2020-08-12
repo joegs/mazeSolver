@@ -31,7 +31,7 @@ class Controller:
             self.image.reset_result()
             self.image.mark_point(self.start_point, color=(255, 0, 0), size=3)
             self.image.mark_point(self.end_point, color=(255, 0, 255), size=3)
-            PUBLISHER.send_message("UpdateImage")
+            PUBLISHER.send_message("ImageUpdateRequest")
         self.point_change = ""
 
     def _solve_maze(self):
@@ -66,8 +66,8 @@ class Controller:
             Subscriber("ImageChangeRequest", function=self._reset_points),
             Subscriber("ResolutionChangeRequest", function=self._change_resolution),
             Subscriber("ImageClicked", function=self._image_clicked),
-            Subscriber("SolveMaze", function=self._solve_maze),
-            Subscriber("StopSolve", function=self._stop_solve),
+            Subscriber("MazeSolveRequest", function=self._solve_maze),
+            Subscriber("MazeStopRequest", function=self._stop_solve),
         ]
         for subscriber in subscribers:
             PUBLISHER.register_subscriber(subscriber)

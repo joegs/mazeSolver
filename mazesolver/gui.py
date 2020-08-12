@@ -1,11 +1,11 @@
 import tkinter as tk
 from tkinter import filedialog, ttk
-from typing import List
+from typing import Tuple
+
+import numpy as np
 
 from mazesolver.image import MazeImage
 from mazesolver.pubsub import PUBLISHER, Subscriber
-
-import time
 
 
 class GuiElement:
@@ -21,47 +21,48 @@ class GuiElement:
 
 
 class ImageArea(GuiElement):
-    IMAGE_SIZE = (600, 600)
+    MAX_WIDTH = 600
+    MAX_HEIGHT = 600
 
     def __init__(self, parent, image: MazeImage):
         super().__init__(parent)
         self.label = ttk.Label(self.frame)
         self.image = image
 
-    def change_image(self, image_path: str):
-        self.image.load_image(image_path)
-        self.update_image()
-
-    def get_scaled_size(self):
+    def _get_scaled_size(self) -> Tuple[int, int]:
         height, width, _ = self.image.pixels.shape
         ratio = width / height
         if width > height:
-            scaled_width = self.IMAGE_SIZE[0]
+            scaled_width = self.MAX_WIDTH
             scaled_height = int(scaled_width / ratio)
         else:
-            scaled_height = self.IMAGE_SIZE[1]
+            scaled_height = self.MAX_HEIGHT
             scaled_width = int(scaled_height * ratio)
         size = (scaled_width, scaled_height)
         return size
 
+    def _image_clicked(self, event):
+        x: int = event.x
+        y: int = event.y
+        scaled_width, scaled_height = self._get_scaled_size()
+        height, width, _ = self.image.pixels.shape
+        real_x = int(x * (width / scaled_width))
+        real_y = int(y * (height / scaled_height))
+        PUBLISHER.send_message("ImageClicked", x=real_x, y=real_y)
+
     def update_image(self):
         if self.image.pixels is None:
             return
-        size = self.get_scaled_size()
+        size = self._get_scaled_size()
         tk_image = self.image.get_tk_image(size)
         self.label.configure(image=tk_image)
         self.label.image = tk_image
 
-    def _image_clicked(self, event):
-        x = event.x
-        y = event.y
-        size = self.get_scaled_size()
-        height, width, _ = self.image.pixels.shape
-        real_x = int(x * (width / size[0]))
-        real_y = int(y * (height / size[1]))
-        PUBLISHER.send_message("ImageClicked", x=real_x, y=real_y)
+    def change_image(self, image_path: str):
+        self.image.load_image(image_path)
+        self.update_image()
 
-    def replace_pixels(self, pixels):
+    def replace_pixels(self, pixels: np.ndarray):
         self.image.result[pixels] = (255, 0, 0)
         self.update_image()
 
@@ -74,8 +75,8 @@ class ImageArea(GuiElement):
     def setup_subscribers(self):
         subscribers = [
             Subscriber("ImageChangeRequest", function=self.change_image),
-            Subscriber("UpdateImage", function=self.update_image),
-            Subscriber("ReplaceImagePixels", function=self.replace_pixels),
+            Subscriber("ImageUpdateRequest", function=self.update_image),
+            Subscriber("ImagePixelReplaceRequest", function=self.replace_pixels),
         ]
         for subscriber in subscribers:
             PUBLISHER.register_subscriber(subscriber)
@@ -84,9 +85,9 @@ class ImageArea(GuiElement):
 class ImageControl(GuiElement):
     def __init__(self, parent):
         super().__init__(parent)
-        self.button = ttk.Button(self.frame, text="Load Image")
+        self.load_image_button = ttk.Button(self.frame, text="Load Image")
 
-    def _select_image_command(self):
+    def _select_image(self):
         filename = filedialog.askopenfilename(title="Select an Image")
         if not filename:
             return
@@ -94,12 +95,10 @@ class ImageControl(GuiElement):
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
-        self.button.grid(column=0, row=0, sticky="WE")
-        self.button.configure(command=self._select_image_command)
+        self.load_image_button.grid(column=0, row=0, sticky="WE")
+        self.load_image_button.configure(command=self._select_image)
 
 
-# TODO change the topic of the messages to make it clear
-# they are requests
 class SolveControl(GuiElement):
     def __init__(self, parent):
         super().__init__(parent)
@@ -108,19 +107,19 @@ class SolveControl(GuiElement):
         self.resume_button = ttk.Button(self.frame, text="Resume")
 
     def _solve_command(self):
-        PUBLISHER.send_message("SolveMaze")
+        PUBLISHER.send_message("MazeSolveRequest")
 
     def _stop_command(self):
-        PUBLISHER.send_message("StopSolve")
+        PUBLISHER.send_message("MazeStopRequest")
 
     def _resume_command(self):
-        PUBLISHER.send_message("ResumeMaze")
+        PUBLISHER.send_message("MazeResumeRequest")
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
         self.solve_button.grid(column=0, row=0, sticky="WE", pady=(0, 10))
         self.stop_button.grid(column=0, row=1, sticky="WE", pady=(0, 10))
-        self.resume_button.grid(column=0, row=2, sticky="WE", pady=(0, 10))
+        self.resume_button.grid(column=0, row=2, sticky="WE")
         self.solve_button.configure(command=self._solve_command)
         self.stop_button.configure(command=self._stop_command)
         self.resume_button.configure(command=self._resume_command)
@@ -141,20 +140,22 @@ class PointsControl(GuiElement):
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
         self.start_button.grid(column=0, row=0, sticky="WE", pady=(0, 10))
-        self.end_button.grid(column=0, row=1, sticky="WE", pady=(0, 10))
+        self.end_button.grid(column=0, row=1, sticky="WE")
         self.start_button.configure(command=self._start_point_command)
         self.end_button.configure(command=self._end_point_command)
 
 
 class ResolutionControl(GuiElement):
+    DEFAULT_RESOLUTION = "300"
+
     def __init__(self, parent):
         super().__init__(parent)
         self.label = ttk.Label(self.frame, text="Scale Resolution")
         self.entry = ttk.Entry(self.frame, width=10)
-        self.string_var = tk.StringVar(value="300")
+        self.string_var = tk.StringVar(value=self.DEFAULT_RESOLUTION)
 
     def reset(self):
-        self.string_var.set("300")
+        self.string_var.set(self.DEFAULT_RESOLUTION)
 
     def _entry_changed(self, *args):
         resolution = self.string_var.get()
@@ -182,7 +183,7 @@ class ControlArea(GuiElement):
         self.image_control.grid(column=0, row=0, sticky="NWE", pady=(0, 10))
         self.points_control.grid(column=0, row=1, sticky="NWE", pady=(10, 10))
         self.solve_control.grid(column=0, row=2, sticky="NWE", pady=(10, 10))
-        self.resolution_control.grid(column=0, row=3, sticky="NWE", pady=(0, 10))
+        self.resolution_control.grid(column=0, row=3, sticky="NWE", pady=(10, 10))
 
 
 class Application:
