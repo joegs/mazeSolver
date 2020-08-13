@@ -1,65 +1,95 @@
+import threading
 import time
+from queue import Empty
 from typing import Tuple
 
 import numpy as np
 
-from mazesolver.event import EVENT_PROCESSOR
 from mazesolver.image import MazeImage
+from mazesolver.pubsub import PUBLISHER, ProcessWorker
 
 
-class Solver:
+class Solver(ProcessWorker):
+    VISITED_VALUE = 200
     VISITED_COLOR = (200, 200, 200)
     SOLUTION_COLOR = (0, 0, 255)
+
+    def __init__(self):
+        super().__init__(daemon=True)
 
     def get_adjacent_pixels(self, pixel: Tuple[int, int]):
         x, y = pixel
         return [(x + 1, y), (x, y + 1), (x - 1, y), (x, y - 1)]
 
-    def mark_pixel_as_visited(self, pixel: Tuple[int, int], image: MazeImage):
-        image.result[pixel] = self.VISITED_COLOR
+    def mark_pixel_as_visited(self, pixel: Tuple[int, int], image: np.ndarray):
+        image[pixel] = self.VISITED_VALUE
 
-    def is_unvisited_pixel(self, pixel, image) -> bool:
-        p = tuple(image.result[pixel])
-        return p != self.VISITED_COLOR and p != self.SOLUTION_COLOR
+    def is_unvisited_pixel(self, pixel, image: np.ndarray) -> bool:
+        p = image[pixel]
+        return p != self.VISITED_VALUE
 
-    def mark_solution(self, path, image):
+    def mark_solution(self, path, image: np.ndarray):
         for x in path:
-            image.result[x] = self.SOLUTION_COLOR
+            image[x] = self.VISITED_VALUE
+
+    def run(self):
+        while True:
+            self.received.wait()
+            while True:
+                try:
+                    kwargs = self.input_queue.get(block=True, timeout=1)
+                except Empty:
+                    break
+                if kwargs.get("start", False):
+                    data = kwargs["data"]
+                    self.solve(**data)
+            self.received.clear()
+
+    def send_pixels(self, array: np.ndarray, color: Tuple[int, int, int]):
+        region = array.nonzero()
+        self.output_queue.put_nowait(
+            {"topic": "ImagePixelReplaceRequest", "region": region, "color": color,}
+        )
 
     def solve(
         self,
         image: MazeImage,
         start: Tuple[int, int],
         end: Tuple[int, int],
-        framerate=20,
+        framerate: int = 15,
     ):
+        # start and end are inverted, since image indexes are in the
+        # form (y, x), instead of (x, y)
         start = (start[1], start[0])
         end = (end[1], end[0])
         height, width, _ = image.pixels.shape
         queue = [[start]]
-        iterations = 1
+        visited = np.zeros(image.bw_pixels.shape, dtype=np.uint8)
+        solution = np.zeros(image.bw_pixels.shape, dtype=np.uint8)
         start_time = time.time()
         while queue:
             path = queue.pop(0)
             pixel = path[-1]
             if pixel == end:
-                self.mark_solution(path, image)
-                EVENT_PROCESSOR.emit_event("UpdateGui")
+                self.mark_solution(path, solution)
+                self.send_pixels(visited, self.VISITED_COLOR)
+                self.send_pixels(solution, self.SOLUTION_COLOR)
+                self.clear_queue()
                 return path
             adjacent_pixels = self.get_adjacent_pixels(pixel)
             for p in adjacent_pixels:
+                # Invert the pixels, to get the correct values
                 y, x = p
                 if x < 0 or y < 0 or x >= width or y >= height:
                     continue
                 if image.bw_pixels[p] == 0:
                     continue
-                elif self.is_unvisited_pixel(p, image):
-                    self.mark_pixel_as_visited(p, image)
+                elif self.is_unvisited_pixel(p, visited):
+                    self.mark_pixel_as_visited(p, visited)
                     new_path = list(path)
                     new_path.append(p)
                     queue.append(new_path)
-                    iterations += 1
             end_time = time.time()
             if end_time - start_time > 1 / framerate:
                 start_time = time.time()
-                EVENT_PROCESSOR.emit_event("UpdateGui")
+                self.send_pixels(visited, self.VISITED_COLOR)
