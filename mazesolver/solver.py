@@ -16,6 +16,7 @@ class Solver(ProcessWorker):
 
     def __init__(self):
         super().__init__(daemon=True)
+        self.reset = False
 
     def get_adjacent_pixels(self, pixel: Tuple[int, int]):
         x, y = pixel
@@ -37,19 +38,49 @@ class Solver(ProcessWorker):
             self.received.wait()
             while True:
                 try:
-                    kwargs = self.input_queue.get(block=True, timeout=1)
+                    kwargs = self.input_queue.get(block=True, timeout=0.05)
                 except Empty:
                     break
                 if kwargs.get("start", False):
                     data = kwargs["data"]
                     self.solve(**data)
-            self.received.clear()
+            self.clear_queue()
 
     def send_pixels(self, array: np.ndarray, color: Tuple[int, int, int]):
         region = array.nonzero()
         self.output_queue.put_nowait(
             {"topic": "ImagePixelReplaceRequest", "region": region, "color": color,}
         )
+
+    def wait_for_resume(self):
+        self.received.clear()
+        stop = False
+        while not stop:
+            self.received.wait()
+            while True:
+                try:
+                    kwargs = self.input_queue.get(block=True, timeout=1 / 60)
+                except Empty:
+                    break
+                if kwargs.get("resume", False):
+                    stop = True
+                elif kwargs.get("reset", False):
+                    self.reset = True
+                    stop = True
+            self.received.clear()
+        self.received.clear()
+
+    def process_messages(self):
+        while True:
+            try:
+                kwargs = self.input_queue.get(block=False)
+            except Empty:
+                break
+            if kwargs.get("stop", False):
+                self.wait_for_resume()
+            elif kwargs.get("reset", False):
+                self.reset = True
+        self.received.clear()
 
     def solve(
         self,
@@ -93,3 +124,7 @@ class Solver(ProcessWorker):
             if end_time - start_time > 1 / framerate:
                 start_time = time.time()
                 self.send_pixels(visited, self.VISITED_COLOR)
+            self.process_messages()
+            if self.reset:
+                self.reset = False
+                return

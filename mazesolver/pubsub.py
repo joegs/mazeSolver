@@ -61,7 +61,8 @@ class ProcessWorker(mp.Process):
             try:
                 self.input_queue.get(block=True, timeout=timeout)
             except Empty:
-                return
+                break
+        self.received.clear()
 
 
 class ProcessSubscriber:

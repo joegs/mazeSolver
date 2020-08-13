@@ -89,7 +89,7 @@ class Controller:
             return
         self.framerate = integer_framerate
 
-    def _solve_maze(self):
+    def _maze_solve(self):
         if self.image.result is None:
             return
         self.image.reset_result()
@@ -104,16 +104,27 @@ class Controller:
             start=True,
         )
 
-    def _stop_solve(self):
-        PUBLISHER.send_message("Maze", stop=True)
+    def _maze_stop(self):
+        PUBLISHER.send_process_message("Maze", stop=True)
+
+    def _maze_resume(self):
+        PUBLISHER.send_process_message("Maze", resume=True)
+
+    def _maze_reset(self):
+        PUBLISHER.send_process_message("Maze", reset=True)
 
     def setup_subscribers(self):
         subscribers = [
             ProcessSubscriber("Maze", worker=self.solver),
             Subscriber("ResolutionChangeRequest", function=self._change_resolution),
             Subscriber("FramerateChangeRequest", function=self._change_framerate),
-            Subscriber("MazeSolveRequest", function=self._solve_maze),
-            Subscriber("MazeStopRequest", function=self._stop_solve),
+            Subscriber(
+                "ImageChangeRequest",
+                function=lambda *args, **kwargs: self._maze_reset(),
+            ),
+            Subscriber("MazeSolveRequest", function=self._maze_solve),
+            Subscriber("MazeStopRequest", function=self._maze_stop),
+            Subscriber("MazeResumeRequest", function=self._maze_resume),
         ]
         for subscriber in subscribers:
             PUBLISHER.register_subscriber(subscriber)
