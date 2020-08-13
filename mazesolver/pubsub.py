@@ -56,10 +56,10 @@ class ProcessWorker(mp.Process):
         self.received = mp.Event()
         self.response = mp.Event()
 
-    def clear_queue(self, timeout=0.05):
+    def clear_queue(self):
         while True:
             try:
-                self.input_queue.get(block=True, timeout=timeout)
+                self.input_queue.get_nowait()
             except Empty:
                 break
         self.received.clear()
@@ -72,8 +72,8 @@ class ProcessSubscriber:
         self.worker.start()
 
     def queue_message(self, wait_for_response: bool, timeout: float, **kwargs):
-        self.worker.received.set()
         self.worker.input_queue.put(kwargs)
+        self.worker.received.set()
         if wait_for_response:
             self.worker.response.wait(timeout=timeout)
             self.worker.response.clear()

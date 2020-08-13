@@ -38,7 +38,7 @@ class Solver(ProcessWorker):
             self.received.wait()
             while True:
                 try:
-                    kwargs = self.input_queue.get(block=True, timeout=0.05)
+                    kwargs = self.input_queue.get(block=False)
                 except Empty:
                     break
                 if kwargs.get("start", False):
@@ -59,7 +59,7 @@ class Solver(ProcessWorker):
             self.received.wait()
             while True:
                 try:
-                    kwargs = self.input_queue.get(block=True, timeout=1 / 60)
+                    kwargs = self.input_queue.get(block=False)
                 except Empty:
                     break
                 if kwargs.get("resume", False):
@@ -68,9 +68,11 @@ class Solver(ProcessWorker):
                     self.reset = True
                     stop = True
             self.received.clear()
-        self.received.clear()
+        self.clear_queue()
 
     def process_messages(self):
+        if not self.received.is_set():
+            return
         while True:
             try:
                 kwargs = self.input_queue.get(block=False)
@@ -80,7 +82,7 @@ class Solver(ProcessWorker):
                 self.wait_for_resume()
             elif kwargs.get("reset", False):
                 self.reset = True
-        self.received.clear()
+        self.clear_queue()
 
     def solve(
         self,
@@ -124,7 +126,7 @@ class Solver(ProcessWorker):
             if end_time - start_time > 1 / framerate:
                 start_time = time.time()
                 self.send_pixels(visited, self.VISITED_COLOR)
-            self.process_messages()
-            if self.reset:
-                self.reset = False
-                return
+                self.process_messages()
+                if self.reset:
+                    self.reset = False
+                    return
