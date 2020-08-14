@@ -89,6 +89,7 @@ class ImageControl(GuiElement):
         filename = filedialog.askopenfilename(title="Select an Image")
         if not filename:
             return
+        PUBLISHER.send_message("MazeCancelRequest")
         PUBLISHER.send_message("ImageSelectionRequest", image_path=filename)
 
     def setup(self):
