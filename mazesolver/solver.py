@@ -1,6 +1,6 @@
 import threading
 import time
-from queue import Empty
+from queue import Empty, Full
 from typing import Tuple
 
 import numpy as np
@@ -15,7 +15,7 @@ class Solver(ProcessWorker):
     SOLUTION_COLOR = (0, 0, 255)
 
     def __init__(self):
-        super().__init__(daemon=True)
+        super().__init__(input_size=1, output_size=1, daemon=True)
         self.reset = False
 
     def get_adjacent_pixels(self, pixel: Tuple[int, int]):
@@ -35,54 +35,71 @@ class Solver(ProcessWorker):
 
     def run(self):
         while True:
+            message_received = False
             self.received.wait()
             while True:
                 try:
-                    kwargs = self.input_queue.get(block=False)
+                    kwargs = self.input_queue.get_nowait()
                 except Empty:
                     break
+                message_received = True
                 if kwargs.get("start", False):
                     data = kwargs["data"]
                     self.solve(**data)
-            self.clear_queue()
+            if message_received:
+                self.clear_queue()
 
-    def send_pixels(self, array: np.ndarray, color: Tuple[int, int, int]):
+    def send_pixels(self, array: np.ndarray, color: Tuple[int, int, int], block=False):
         region = array.nonzero()
-        self.output_queue.put_nowait(
-            {"topic": "ImagePixelReplaceRequest", "region": region, "color": color,}
-        )
+        try:
+            self.output_queue.put(
+                {"topic": "ImagePixelReplaceRequest", "region": region, "color": color},
+                block=block,
+                timeout=0.5,
+            )
+        except Full:
+            pass
 
     def wait_for_resume(self):
         self.received.clear()
         stop = False
         while not stop:
+            message_received = False
             self.received.wait()
             while True:
                 try:
-                    kwargs = self.input_queue.get(block=False)
+                    kwargs = self.input_queue.get_nowait()
                 except Empty:
                     break
+                message_received = True
                 if kwargs.get("resume", False):
                     stop = True
+                    break
                 elif kwargs.get("reset", False):
                     self.reset = True
                     stop = True
-            self.received.clear()
-        self.clear_queue()
+                    break
+            if message_received:
+                self.clear_queue()
 
     def process_messages(self):
         if not self.received.is_set():
             return
         while True:
-            try:
-                kwargs = self.input_queue.get(block=False)
-            except Empty:
+            message_received = False
+            while True:
+                try:
+                    kwargs = self.input_queue.get(block=False)
+                except Empty:
+                    break
+                message_received = True
+                if kwargs.get("stop", False):
+                    self.wait_for_resume()
+                elif kwargs.get("reset", False):
+                    self.reset = True
+            if message_received:
+                self.clear_queue()
                 break
-            if kwargs.get("stop", False):
-                self.wait_for_resume()
-            elif kwargs.get("reset", False):
-                self.reset = True
-        self.clear_queue()
 
     def solve(
         self,
@@ -91,6 +108,7 @@ class Solver(ProcessWorker):
         end: Tuple[int, int],
         framerate: int = 15,
     ):
+        self.clear_queue()
         # start and end are inverted, since image indexes are in the
         # form (y, x), instead of (x, y)
         start = (start[1], start[0])
@@ -106,7 +124,7 @@ class Solver(ProcessWorker):
             if pixel == end:
                 self.mark_solution(path, solution)
                 self.send_pixels(visited, self.VISITED_COLOR)
-                self.send_pixels(solution, self.SOLUTION_COLOR)
+                self.send_pixels(solution, self.SOLUTION_COLOR, block=True)
                 self.clear_queue()
                 return path
             adjacent_pixels = self.get_adjacent_pixels(pixel)
