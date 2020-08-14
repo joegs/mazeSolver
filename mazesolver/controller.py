@@ -1,4 +1,5 @@
 from enum import Enum
+from tkinter import messagebox
 
 from mazesolver.gui import Application
 from mazesolver.image import MazeImage
@@ -62,35 +63,114 @@ class PointController:
             PUBLISHER.register_subscriber(subscriber)
 
 
+class ResolutionController:
+    DEFAULT_RESOLUTION = 300
+    MIN_RESOLUTION = 50
+    MAX_RESOLUTION = 1200
+
+    def __init__(self, image: MazeImage):
+        self.image = image
+        self.resolution = f"{self.DEFAULT_RESOLUTION}"
+        self.setup_subscribers()
+
+    def _show_resolution_error(self):
+        PUBLISHER.send_message("ResolutionResetRequest")
+        messagebox.showerror(
+            title="Error",
+            message=f"Invalid Resolution: resolution must be an integer between {self.MIN_RESOLUTION} and {self.MAX_RESOLUTION}",
+        )
+        raise ValueError(f"Invalid Resolution: {self.resolution}")
+
+    def _validate_resolution(self):
+        try:
+            integer_resolution = int(self.resolution)
+        except ValueError:
+            self._show_resolution_error()
+            return
+        if (
+            integer_resolution < self.MIN_RESOLUTION
+            or integer_resolution > self.MAX_RESOLUTION
+        ):
+            self._show_resolution_error()
+
+    def _set_resolution(self, resolution: str):
+        self.resolution = resolution
+
+    def change_resolution(self):
+        self._validate_resolution()
+        self.image.scaled_resolution = int(self.resolution)
+
+    def setup_subscribers(self):
+        subscribers = [
+            Subscriber("ResolutionChangeRequest", function=self._set_resolution),
+        ]
+        for subscriber in subscribers:
+            PUBLISHER.register_subscriber(subscriber)
+
+
+class FramerateController:
+    DEFAULT_FRAMERATE = 15
+    MIN_FRAMERATE = 5
+    MAX_FRAMERATE = 60
+
+    def __init__(self):
+        self.framerate = f"{self.DEFAULT_FRAMERATE}"
+        self.setup_subscribers()
+
+    def _show_framerate_error(self):
+        PUBLISHER.send_message("FramerateResetRequest")
+        messagebox.showerror(
+            title="Error",
+            message=f"Invalid Framerate: framerate must be an integer between {self.MIN_FRAMERATE} and {self.MAX_FRAMERATE}",
+        )
+        raise ValueError(f"Invalid Framerate: {self.framerate}")
+
+    def validate_framerate(self):
+        try:
+            integer_framerate = int(self.framerate)
+        except ValueError:
+            self._show_framerate_error()
+            return
+        if (
+            integer_framerate < self.MIN_FRAMERATE
+            or integer_framerate > self.MAX_FRAMERATE
+        ):
+            self._show_framerate_error()
+
+    def _set_framerate(self, framerate: str):
+        self.framerate = framerate
+
+    def setup_subscribers(self):
+        subscribers = [
+            Subscriber("FramerateChangeRequest", function=self._set_framerate),
+        ]
+        for subscriber in subscribers:
+            PUBLISHER.register_subscriber(subscriber)
+
+
 class Controller:
     def __init__(self):
         self.image = MazeImage()
-        self.framerate = 15
         self._point_controller = PointController(self.image)
+        self._resolution_controller = ResolutionController(self.image)
+        self._framerate_controller = FramerateController()
         self.application = Application(self.image)
         self.solver = Solver()
         self.setup_subscribers()
 
-    def _change_resolution(self, resolution: str):
-        try:
-            integer_resolution = int(resolution)
-            if integer_resolution < 50:
-                return
-        except ValueError:
-            return
-        self.image.scaled_resolution = integer_resolution
-
-    def _change_framerate(self, framerate: str):
-        try:
-            integer_framerate = int(framerate)
-            if integer_framerate < 5 or integer_framerate > 60:
-                return
-        except ValueError:
-            return
-        self.framerate = integer_framerate
+    def _validate_image(self):
+        if not self.image.loaded:
+            messagebox.showerror(
+                title="Error",
+                message="Invalid Operation: an image must be loaded first",
+            )
+            raise ValueError("Image not loaded")
 
     def _maze_solve(self):
-        if self.image.result is None:
+        try:
+            self._validate_image()
+            self._framerate_controller.validate_framerate()
+        except ValueError:
             return
         self.image.reset_result()
         PUBLISHER.send_process_message(
@@ -99,7 +179,7 @@ class Controller:
                 "image": self.image,
                 "start": self._point_controller.start_point,
                 "end": self._point_controller.end_point,
-                "framerate": self.framerate,
+                "framerate": int(self._framerate_controller.framerate),
             },
             start=True,
         )
@@ -113,15 +193,17 @@ class Controller:
     def _maze_reset(self):
         PUBLISHER.send_process_message("Maze", reset=True)
 
+    def _image_selection(self, image_path: str):
+        try:
+            self._resolution_controller.change_resolution()
+        except ValueError:
+            return
+        PUBLISHER.send_message("ImageChangeRequest", image_path=image_path)
+
     def setup_subscribers(self):
         subscribers = [
             ProcessSubscriber("Maze", worker=self.solver),
-            Subscriber("ResolutionChangeRequest", function=self._change_resolution),
-            Subscriber("FramerateChangeRequest", function=self._change_framerate),
-            Subscriber(
-                "ImageChangeRequest",
-                function=lambda *args, **kwargs: self._maze_reset(),
-            ),
+            Subscriber("ImageSelectionRequest", function=self._image_selection),
             Subscriber("MazeSolveRequest", function=self._maze_solve),
             Subscriber("MazeStopRequest", function=self._maze_stop),
             Subscriber("MazeResumeRequest", function=self._maze_resume),

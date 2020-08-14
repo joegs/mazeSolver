@@ -13,6 +13,7 @@ class MazeImage:
         self.pixels: np.ndarray = np.zeros(0)
         self.bw_pixels: np.ndarray = np.zeros(0)
         self.result: np.ndarray = np.zeros(0)
+        self.loaded = False
 
     def get_scaled_size(self):
         height, width, _ = self.pixels.shape
@@ -43,6 +44,7 @@ class MazeImage:
         self._load_pixels(image_path)
         self._load_bw_pixels()
         self.result = np.copy(self.pixels)
+        self.loaded = True
 
     def get_tk_image(
         self, size: Optional[Tuple[int, int]] = None

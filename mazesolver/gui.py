@@ -89,7 +89,7 @@ class ImageControl(GuiElement):
         filename = filedialog.askopenfilename(title="Select an Image")
         if not filename:
             return
-        PUBLISHER.send_message("ImageChangeRequest", image_path=filename)
+        PUBLISHER.send_message("ImageSelectionRequest", image_path=filename)
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
@@ -151,6 +151,7 @@ class ResolutionControl(GuiElement):
         self.label = ttk.Label(self.frame, text="Scale Resolution")
         self.entry = ttk.Entry(self.frame, width=10)
         self.string_var = tk.StringVar(value=self.DEFAULT_RESOLUTION)
+        self.setup_subscribers()
 
     def reset(self):
         self.string_var.set(self.DEFAULT_RESOLUTION)
@@ -167,6 +168,11 @@ class ResolutionControl(GuiElement):
         self.entry.configure(textvariable=self.string_var)
         self.string_var.trace_add("write", self._entry_changed)
 
+    def setup_subscribers(self):
+        subscribers = [Subscriber("ResolutionResetRequest", function=self.reset)]
+        for subscriber in subscribers:
+            PUBLISHER.register_subscriber(subscriber)
+
 
 class FramerateControl(GuiElement):
     DEFAULT_FRAMERATE = "15"
@@ -176,6 +182,7 @@ class FramerateControl(GuiElement):
         self.label = ttk.Label(self.frame, text="Framerate")
         self.entry = ttk.Entry(self.frame, width=10)
         self.string_var = tk.StringVar(value=self.DEFAULT_FRAMERATE)
+        self.setup_subscribers()
 
     def reset(self):
         self.string_var.set(self.DEFAULT_FRAMERATE)
@@ -191,6 +198,11 @@ class FramerateControl(GuiElement):
         self.entry.grid(column=1, row=0, sticky="WE")
         self.entry.configure(textvariable=self.string_var)
         self.string_var.trace_add("write", self._entry_changed)
+
+    def setup_subscribers(self):
+        subscribers = [Subscriber("FramerateResetRequest", function=self.reset)]
+        for subscriber in subscribers:
+            PUBLISHER.register_subscriber(subscriber)
 
 
 class ControlArea(GuiElement):
