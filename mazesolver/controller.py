@@ -191,7 +191,13 @@ class Controller:
         PUBLISHER.send_process_message("Maze", resume=True)
 
     def _maze_reset(self):
-        PUBLISHER.send_process_message("Maze", reset=True)
+        PUBLISHER.send_process_message(
+            "Maze",
+            reset=True,
+            wait_for_response=True,
+            message_timeout=0.2,
+            response_timeout=0.2,
+        )
 
     def _image_selection(self, image_path: str):
         try:
@@ -200,6 +206,10 @@ class Controller:
             return
         PUBLISHER.send_message("ImageChangeRequest", image_path=image_path)
 
+    def _image_reset(self):
+        self.image.reset_result()
+        PUBLISHER.send_message("ImageUpdateRequest")
+
     def setup_subscribers(self):
         subscribers = [
             ProcessSubscriber("Maze", worker=self.solver),
@@ -207,6 +217,8 @@ class Controller:
             Subscriber("MazeSolveRequest", function=self._maze_solve),
             Subscriber("MazeStopRequest", function=self._maze_stop),
             Subscriber("MazeResumeRequest", function=self._maze_resume),
+            Subscriber("MazeCancelRequest", function=self._maze_reset),
+            Subscriber("ImageResetRequest", function=self._image_reset),
         ]
         for subscriber in subscribers:
             PUBLISHER.register_subscriber(subscriber)

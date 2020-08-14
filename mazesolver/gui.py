@@ -103,6 +103,7 @@ class SolveControl(GuiElement):
         self.solve_button = ttk.Button(self.frame, text="Solve")
         self.stop_button = ttk.Button(self.frame, text="Stop")
         self.resume_button = ttk.Button(self.frame, text="Resume")
+        self.cancel_button = ttk.Button(self.frame, text="Cancel")
 
     def _solve_command(self):
         PUBLISHER.send_message("MazeSolveRequest")
@@ -113,14 +114,19 @@ class SolveControl(GuiElement):
     def _resume_command(self):
         PUBLISHER.send_message("MazeResumeRequest")
 
+    def _cancel_command(self):
+        PUBLISHER.send_message("MazeCancelRequest")
+
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
         self.solve_button.grid(column=0, row=0, sticky="WE", pady=(0, 10))
         self.stop_button.grid(column=0, row=1, sticky="WE", pady=(0, 10))
-        self.resume_button.grid(column=0, row=2, sticky="WE")
+        self.resume_button.grid(column=0, row=2, sticky="WE", pady=(0, 10))
+        self.cancel_button.grid(column=0, row=3, sticky="WE")
         self.solve_button.configure(command=self._solve_command)
         self.stop_button.configure(command=self._stop_command)
         self.resume_button.configure(command=self._resume_command)
+        self.cancel_button.configure(command=self._cancel_command)
 
 
 class PointsControl(GuiElement):

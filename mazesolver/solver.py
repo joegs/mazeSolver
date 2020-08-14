@@ -46,6 +46,8 @@ class Solver(ProcessWorker):
                 if kwargs.get("start", False):
                     data = kwargs["data"]
                     self.solve(**data)
+                elif kwargs.get("reset", False):
+                    self.response.set()
             if message_received:
                 self.clear_queue()
 
@@ -56,6 +58,14 @@ class Solver(ProcessWorker):
                 {"topic": "ImagePixelReplaceRequest", "region": region, "color": color},
                 block=block,
                 timeout=0.5,
+            )
+        except Full:
+            pass
+
+    def send_image_reset_request(self):
+        try:
+            self.output_queue.put(
+                {"topic": "ImageResetRequest"}, block=True, timeout=0.5,
             )
         except Full:
             pass
@@ -147,4 +157,6 @@ class Solver(ProcessWorker):
                 self.process_messages()
                 if self.reset:
                     self.reset = False
+                    self.send_image_reset_request()
+                    self.response.set()
                     return
