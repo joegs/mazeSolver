@@ -91,31 +91,32 @@ class ResolutionController:
         self.resolution = f"{self.DEFAULT_RESOLUTION}"
         self.setup_subscribers()
 
-    def _show_resolution_error(self):
-        PUBLISHER.send_message("ResolutionResetRequest")
+    def show_resolution_error(self):
         messagebox.showerror(
             title="Error",
             message=f"Invalid Resolution: resolution must be an integer between {self.MIN_RESOLUTION} and {self.MAX_RESOLUTION}",
         )
-        raise ValueError(f"Invalid Resolution: {self.resolution}")
 
-    def _validate_resolution(self):
+    def validate_resolution(self):
         try:
             integer_resolution = int(self.resolution)
         except ValueError:
-            self._show_resolution_error()
-            return
+            PUBLISHER.send_message("ResolutionResetRequest")
+            self.show_resolution_error()
+            raise ValueError(f"Invalid Resolution: {self.resolution}")
         if (
             integer_resolution < self.MIN_RESOLUTION
             or integer_resolution > self.MAX_RESOLUTION
         ):
-            self._show_resolution_error()
+            PUBLISHER.send_message("ResolutionResetRequest")
+            self.show_resolution_error()
+            raise ValueError(f"Invalid Resolution: {self.resolution}")
 
     def _set_resolution(self, resolution: str):
         self.resolution = resolution
 
     def change_resolution(self):
-        self._validate_resolution()
+        self.validate_resolution()
         self.image.scaled_resolution = int(self.resolution)
 
     def setup_subscribers(self):
@@ -135,25 +136,26 @@ class FramerateController:
         self.framerate = f"{self.DEFAULT_FRAMERATE}"
         self.setup_subscribers()
 
-    def _show_framerate_error(self):
-        PUBLISHER.send_message("FramerateResetRequest")
+    def show_framerate_error(self):
         messagebox.showerror(
             title="Error",
             message=f"Invalid Framerate: framerate must be an integer between {self.MIN_FRAMERATE} and {self.MAX_FRAMERATE}",
         )
-        raise ValueError(f"Invalid Framerate: {self.framerate}")
 
     def validate_framerate(self):
         try:
             integer_framerate = int(self.framerate)
         except ValueError:
-            self._show_framerate_error()
-            return
+            self.show_framerate_error()
+            PUBLISHER.send_message("FramerateResetRequest")
+            raise ValueError(f"Invalid Framerate: {self.framerate}")
         if (
             integer_framerate < self.MIN_FRAMERATE
             or integer_framerate > self.MAX_FRAMERATE
         ):
-            self._show_framerate_error()
+            PUBLISHER.send_message("FramerateResetRequest")
+            self.show_framerate_error()
+            raise ValueError(f"Invalid Framerate: {self.framerate}")
 
     def _set_framerate(self, framerate: str):
         self.framerate = framerate
@@ -166,42 +168,85 @@ class FramerateController:
             PUBLISHER.register_subscriber(subscriber)
 
 
-class Controller:
+class ImageController:
     SAVE_FORMATS = ["PNG", "JPG", "JPEG"]
 
-    def __init__(self):
-        self.image = MazeImage()
-        self._point_controller = PointController(self.image)
-        self._resolution_controller = ResolutionController(self.image)
-        self._framerate_controller = FramerateController()
-        self.application = Application(self.image)
-        self.solver = Solver()
+    def __init__(self, image: MazeImage, resolution_controller: ResolutionController):
+        self.image = image
+        self.resolution_controller = resolution_controller
         self.setup_subscribers()
 
-    def _validate_image(self):
-        if not self.image.loaded:
-            messagebox.showerror(
-                title="Error",
-                message="Invalid Operation: an image must be loaded first",
-            )
-            raise ValueError("Image not loaded")
-
-    def _show_save_format_error(self):
+    def show_image_not_loaded_error(self):
         messagebox.showerror(
-            title="Error",
-            message=f"Invalid Save Format: save format must be one of {self.SAVE_FORMATS}",
+            title="Error", message="Invalid Operation: an image must be loaded first",
         )
 
-    def _validate_save_format(self, image_path: str):
+    def show_save_format_error(self):
+        messagebox.showerror(
+            title="Error",
+            message=f"Invalid Save Format: must be one of {self.SAVE_FORMATS}",
+        )
+
+    def validate_image(self):
+        if not self.image.loaded:
+            self.show_image_not_loaded_error()
+            raise ValueError("Image not loaded")
+
+    def validate_save_format(self, image_path: str):
         save_format = os.path.splitext(image_path)[1]
-        if save_format not in self.SAVE_FORMATS:
-            self._show_save_format_error()
+        save_format = save_format.replace(".", "")
+        if save_format.upper() not in self.SAVE_FORMATS:
+            self.show_save_format_error()
             raise ValueError(f"Invalid save format: {save_format}")
 
-    def _maze_solve(self):
+    def image_selection(self, image_path: str):
         try:
-            self._validate_image()
-            self._framerate_controller.validate_framerate()
+            self.resolution_controller.change_resolution()
+        except ValueError:
+            return
+        self.image.overlay.clear()
+        PUBLISHER.send_message("ImageChangeRequest", image_path=image_path)
+
+    def image_reset(self):
+        self.image.reset_result()
+        PUBLISHER.send_message("ImageUpdateRequest")
+
+    def image_save(self, image_path: str):
+        try:
+            self.validate_image()
+            self.validate_save_format(image_path)
+        except ValueError:
+            return
+        self.image.save_result(image_path)
+
+    def setup_subscribers(self):
+        subscribers = [
+            Subscriber("ImageSelectionRequest", function=self.image_selection),
+            Subscriber("ImageResetRequest", function=self.image_reset),
+            Subscriber("ImageSaveRequest", function=self.image_save),
+        ]
+        for subscriber in subscribers:
+            PUBLISHER.register_subscriber(subscriber)
+
+
+class MazeController:
+    def __init__(
+        self,
+        image: MazeImage,
+        image_controller: ImageController,
+        framerate_controller: FramerateController,
+        point_controller: PointController,
+    ):
+        self.image = image
+        self.image_controller = image_controller
+        self.framerate_controller = framerate_controller
+        self.point_controller = point_controller
+        self.setup_subscribers()
+
+    def maze_solve(self):
+        try:
+            self.image_controller.validate_image()
+            self.framerate_controller.validate_framerate()
         except ValueError:
             return
         self.image.reset_result()
@@ -209,20 +254,20 @@ class Controller:
             "Maze",
             data={
                 "image": self.image,
-                "start": self._point_controller.start_point,
-                "end": self._point_controller.end_point,
-                "framerate": int(self._framerate_controller.framerate),
+                "start": self.point_controller.start_point,
+                "end": self.point_controller.end_point,
+                "framerate": int(self.framerate_controller.framerate),
             },
             start=True,
         )
 
-    def _maze_stop(self):
+    def maze_stop(self):
         PUBLISHER.send_process_message("Maze", stop=True)
 
-    def _maze_resume(self):
+    def maze_resume(self):
         PUBLISHER.send_process_message("Maze", resume=True)
 
-    def _maze_reset(self):
+    def maze_reset(self):
         PUBLISHER.send_process_message(
             "Maze",
             reset=True,
@@ -231,37 +276,38 @@ class Controller:
             response_timeout=0.2,
         )
 
-    def _image_selection(self, image_path: str):
-        try:
-            self._resolution_controller.change_resolution()
-        except ValueError:
-            return
-        self.image.overlay.clear()
-        PUBLISHER.send_message("ImageChangeRequest", image_path=image_path)
-
-    def _image_reset(self):
-        self.image.reset_result()
-        PUBLISHER.send_message("ImageUpdateRequest")
-
-    def _image_save(self, image_path: str):
-        try:
-            self._validate_image()
-            self._validate_save_format(image_path)
-        except ValueError:
-            return
-        self.image.save_result(image_path)
-
     def setup_subscribers(self):
         subscribers = [
-            ProcessSubscriber("Maze", worker=self.solver),
-            Subscriber("ImageSelectionRequest", function=self._image_selection),
-            Subscriber("MazeSolveRequest", function=self._maze_solve),
-            Subscriber("MazeStopRequest", function=self._maze_stop),
-            Subscriber("MazeResumeRequest", function=self._maze_resume),
-            Subscriber("MazeCancelRequest", function=self._maze_reset),
-            Subscriber("ImageResetRequest", function=self._image_reset),
-            Subscriber("ImageSaveRequest", function=self._image_save),
+            Subscriber("MazeSolveRequest", function=self.maze_solve),
+            Subscriber("MazeStopRequest", function=self.maze_stop),
+            Subscriber("MazeResumeRequest", function=self.maze_resume),
+            Subscriber("MazeCancelRequest", function=self.maze_reset),
         ]
+        for subscriber in subscribers:
+            PUBLISHER.register_subscriber(subscriber)
+
+
+class ApplicationController:
+    def __init__(self):
+        self.image = MazeImage()
+        self._point_controller = PointController(self.image)
+        self._resolution_controller = ResolutionController(self.image)
+        self._framerate_controller = FramerateController()
+        self._image_controller = ImageController(
+            self.image, self._resolution_controller
+        )
+        self._maze_controller = MazeController(
+            self.image,
+            self._image_controller,
+            self._framerate_controller,
+            self._point_controller,
+        )
+        self.application = Application(self.image)
+        self.solver = Solver()
+        self.setup_subscribers()
+
+    def setup_subscribers(self):
+        subscribers = [ProcessSubscriber("Maze", worker=self.solver)]
         for subscriber in subscribers:
             PUBLISHER.register_subscriber(subscriber)
 
