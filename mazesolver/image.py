@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -13,6 +13,7 @@ class MazeImage:
         self.pixels: np.ndarray = np.zeros(0)
         self.bw_pixels: np.ndarray = np.zeros(0)
         self.result: np.ndarray = np.zeros(0)
+        self.overlay: List[Tuple[Tuple[int, int, int, int], Tuple[int, int, int]]] = []
         self.loaded = False
 
     def get_scaled_size(self):
@@ -46,9 +47,15 @@ class MazeImage:
         self.result = np.copy(self.pixels)
         self.loaded = True
 
+    def apply_overlay(self):
+        for area, color in self.overlay:
+            x1, y1, x2, y2 = area
+            self.result[y1:y2, x1:x2] = color
+
     def get_tk_image(
         self, size: Optional[Tuple[int, int]] = None
     ) -> ImageTk.PhotoImage:
+        self.apply_overlay()
         pixels = self.result
         if size:
             pixels = cv2.resize(pixels, size)
@@ -58,9 +65,3 @@ class MazeImage:
 
     def reset_result(self):
         self.result = np.copy(self.pixels)
-
-    def mark_point(
-        self, point: Tuple[int, int], color: Tuple[int, int, int], size: int = 2,
-    ):
-        x, y = point
-        self.result[y : y + size, x : x + size] = color

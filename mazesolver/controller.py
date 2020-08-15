@@ -6,6 +6,8 @@ from mazesolver.image import MazeImage
 from mazesolver.pubsub import PUBLISHER, ProcessSubscriber, Subscriber
 from mazesolver.solver import Solver
 
+from typing import Tuple
+
 
 class PointStatus(Enum):
     NONE = ""
@@ -38,6 +40,12 @@ class PointController:
     def set_status(self, kind: str):
         self.status = PointStatus.from_value(kind)
 
+    def get_area(self, point: Tuple[int, int], size: int):
+        x1, y1 = point
+        x2 = x1 + size
+        y2 = y1 + size
+        return (x1, y1, x2, y2)
+
     def set_point(self, x: int, y: int):
         if self.status == PointStatus.START:
             self.start_point = (x, y)
@@ -45,8 +53,11 @@ class PointController:
             self.end_point = (x, y)
         if self.status != PointStatus.NONE:
             self.image.reset_result()
-            self.image.mark_point(self.start_point, color=self.START_COLOR, size=3)
-            self.image.mark_point(self.end_point, color=self.END_COLOR, size=3)
+            self.image.overlay.clear()
+            start_area = self.get_area(self.start_point, 3)
+            end_area = self.get_area(self.end_point, 3)
+            self.image.overlay.append((start_area, self.START_COLOR))
+            self.image.overlay.append((end_area, self.END_COLOR))
             PUBLISHER.send_message("ImageUpdateRequest")
         self.status = PointStatus.NONE
 
@@ -204,6 +215,7 @@ class Controller:
             self._resolution_controller.change_resolution()
         except ValueError:
             return
+        self.image.overlay.clear()
         PUBLISHER.send_message("ImageChangeRequest", image_path=image_path)
 
     def _image_reset(self):
