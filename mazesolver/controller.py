@@ -40,11 +40,20 @@ class PointController:
     def set_status(self, kind: str):
         self.status = PointStatus.from_value(kind)
 
-    def get_area(self, point: Tuple[int, int], size: int):
+    def get_area(self, point: Tuple[int, int]) -> Tuple[int, int, int, int]:
+        size = round(self.image.scaled_resolution / 100)
         x1, y1 = point
         x2 = x1 + size
         y2 = y1 + size
         return (x1, y1, x2, y2)
+
+    def set_start_point(self):
+        start_area = self.get_area(self.start_point)
+        self.image.overlay.append((start_area, self.START_COLOR))
+
+    def set_end_point(self):
+        end_area = self.get_area(self.end_point)
+        self.image.overlay.append((end_area, self.END_COLOR))
 
     def set_point(self, x: int, y: int):
         if self.status == PointStatus.START:
@@ -54,10 +63,8 @@ class PointController:
         if self.status != PointStatus.NONE:
             self.image.reset_result()
             self.image.overlay.clear()
-            start_area = self.get_area(self.start_point, 3)
-            end_area = self.get_area(self.end_point, 3)
-            self.image.overlay.append((start_area, self.START_COLOR))
-            self.image.overlay.append((end_area, self.END_COLOR))
+            self.set_start_point()
+            self.set_end_point()
             PUBLISHER.send_message("ImageUpdateRequest")
         self.status = PointStatus.NONE
 
