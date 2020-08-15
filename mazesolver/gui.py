@@ -130,6 +130,27 @@ class SolveControl(GuiElement):
         self.cancel_button.configure(command=self._cancel_command)
 
 
+class SaveControl(GuiElement):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.save_button = ttk.Button(self.frame, text="Save Image")
+
+    def _save_command(self):
+        filename = filedialog.asksaveasfilename(
+            title="Save Image",
+            defaultextension="png",
+            filetypes=[("PNG", ".png"), ("JPG", ".jpg"), ("JPEG", ".jpeg")],
+        )
+        if not filename:
+            return
+        PUBLISHER.send_message("ImageSaveRequest", image_path=filename)
+
+    def setup(self):
+        self.frame.columnconfigure(0, weight=1)
+        self.save_button.grid(column=0, row=0, sticky="WE")
+        self.save_button.configure(command=self._save_command)
+
+
 class PointsControl(GuiElement):
     def __init__(self, parent):
         super().__init__(parent)
@@ -216,8 +237,9 @@ class ControlArea(GuiElement):
     def __init__(self, parent):
         super().__init__(parent)
         self.image_control = ImageControl(self.frame)
-        self.solve_control = SolveControl(self.frame)
         self.points_control = PointsControl(self.frame)
+        self.solve_control = SolveControl(self.frame)
+        self.save_control = SaveControl(self.frame)
         self.resolution_control = ResolutionControl(self.frame)
         self.framerate_control = FramerateControl(self.frame)
 
@@ -226,8 +248,9 @@ class ControlArea(GuiElement):
         self.image_control.grid(column=0, row=0, sticky="NWE", pady=(0, 10))
         self.points_control.grid(column=0, row=1, sticky="NWE", pady=(10, 10))
         self.solve_control.grid(column=0, row=2, sticky="NWE", pady=(10, 10))
-        self.resolution_control.grid(column=0, row=3, sticky="NWE", pady=(10, 10))
-        self.framerate_control.grid(column=0, row=4, sticky="NWE", pady=(0, 10))
+        self.save_control.grid(column=0, row=3, sticky="NWE", pady=(10, 10))
+        self.resolution_control.grid(column=0, row=4, sticky="NWE", pady=(10, 10))
+        self.framerate_control.grid(column=0, row=5, sticky="NWE", pady=(0, 10))
 
 
 class Application:

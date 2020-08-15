@@ -1,12 +1,12 @@
+import os.path
 from enum import Enum
 from tkinter import messagebox
+from typing import Tuple
 
 from mazesolver.gui import Application
 from mazesolver.image import MazeImage
 from mazesolver.pubsub import PUBLISHER, ProcessSubscriber, Subscriber
 from mazesolver.solver import Solver
-
-from typing import Tuple
 
 
 class PointStatus(Enum):
@@ -167,6 +167,8 @@ class FramerateController:
 
 
 class Controller:
+    SAVE_FORMATS = ["PNG", "JPG", "JPEG"]
+
     def __init__(self):
         self.image = MazeImage()
         self._point_controller = PointController(self.image)
@@ -183,6 +185,18 @@ class Controller:
                 message="Invalid Operation: an image must be loaded first",
             )
             raise ValueError("Image not loaded")
+
+    def _show_save_format_error(self):
+        messagebox.showerror(
+            title="Error",
+            message=f"Invalid Save Format: save format must be one of {self.SAVE_FORMATS}",
+        )
+
+    def _validate_save_format(self, image_path: str):
+        save_format = os.path.splitext(image_path)[1]
+        if save_format not in self.SAVE_FORMATS:
+            self._show_save_format_error()
+            raise ValueError(f"Invalid save format: {save_format}")
 
     def _maze_solve(self):
         try:
@@ -229,6 +243,14 @@ class Controller:
         self.image.reset_result()
         PUBLISHER.send_message("ImageUpdateRequest")
 
+    def _image_save(self, image_path: str):
+        try:
+            self._validate_image()
+            self._validate_save_format(image_path)
+        except ValueError:
+            return
+        self.image.save_result(image_path)
+
     def setup_subscribers(self):
         subscribers = [
             ProcessSubscriber("Maze", worker=self.solver),
@@ -238,6 +260,7 @@ class Controller:
             Subscriber("MazeResumeRequest", function=self._maze_resume),
             Subscriber("MazeCancelRequest", function=self._maze_reset),
             Subscriber("ImageResetRequest", function=self._image_reset),
+            Subscriber("ImageSaveRequest", function=self._image_save),
         ]
         for subscriber in subscribers:
             PUBLISHER.register_subscriber(subscriber)

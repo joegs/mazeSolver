@@ -63,5 +63,9 @@ class MazeImage:
         tk_image = ImageTk.PhotoImage(image)
         return tk_image
 
+    def save_result(self, image_path: str):
+        image = Image.fromarray(self.result)
+        image.save(image_path)
+
     def reset_result(self):
         self.result = np.copy(self.pixels)
