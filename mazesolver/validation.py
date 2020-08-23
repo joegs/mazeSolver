@@ -28,13 +28,13 @@ class FramerateValidator:
             integer_framerate = int(self.framerate)
         except ValueError:
             self.show_framerate_error()
-            PUBLISHER.send_message("FramerateResetRequest")
+            PUBLISHER.queue_message("FramerateResetRequest")
             raise ValueError(f"Invalid Framerate: {self.framerate}")
         if (
             integer_framerate < self.MIN_FRAMERATE
             or integer_framerate > self.MAX_FRAMERATE
         ):
-            PUBLISHER.send_message("FramerateResetRequest")
+            PUBLISHER.queue_message("FramerateResetRequest")
             self.show_framerate_error()
             raise ValueError(f"Invalid Framerate: {self.framerate}")
 
@@ -61,14 +61,14 @@ class ResolutionValidator:
         try:
             integer_resolution = int(self.resolution)
         except ValueError:
-            PUBLISHER.send_message("ResolutionResetRequest")
+            PUBLISHER.queue_message("ResolutionResetRequest")
             self.show_resolution_error()
             raise ValueError(f"Invalid Resolution: {self.resolution}")
         if (
             integer_resolution < self.MIN_RESOLUTION
             or integer_resolution > self.MAX_RESOLUTION
         ):
-            PUBLISHER.send_message("ResolutionResetRequest")
+            PUBLISHER.queue_message("ResolutionResetRequest")
             self.show_resolution_error()
             raise ValueError(f"Invalid Resolution: {self.resolution}")
 

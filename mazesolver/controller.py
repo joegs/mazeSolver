@@ -100,7 +100,7 @@ class PointController:
             self.image.overlay.clear()
             self.set_start_point()
             self.set_end_point()
-            PUBLISHER.send_message("ImageUpdateRequest")
+            PUBLISHER.queue_message("ImageUpdateRequest")
         self.status = PointStatus.NONE
 
     def setup_subscribers(self):
@@ -132,11 +132,11 @@ class ImageController:
         except ValueError:
             return
         self.image.overlay.clear()
-        PUBLISHER.send_message("ImageChangeRequest", image_path=image_path)
+        PUBLISHER.queue_message("ImageChangeRequest", image_path=image_path)
 
     def image_reset(self):
         self.image.reset_result()
-        PUBLISHER.send_message("ImageUpdateRequest")
+        PUBLISHER.queue_message("ImageUpdateRequest")
 
     def image_save(self, image_path: str):
         try:
@@ -172,25 +172,16 @@ class MazeController:
         except ValueError:
             return
         self.image.reset_result()
-        PUBLISHER.send_process_message(
-            "Maze",
-            data={
-                "image": self.image,
-                "start": self.state.start_point,
-                "end": self.state.end_point,
-                "framerate": int(self.state.framerate),
-            },
-            start=True,
-        )
+        PUBLISHER.queue_process_message("Maze", start=True, state=self.state)
 
     def maze_stop(self):
-        PUBLISHER.send_process_message("Maze", stop=True)
+        PUBLISHER.queue_process_message("Maze", stop=True)
 
     def maze_resume(self):
-        PUBLISHER.send_process_message("Maze", resume=True)
+        PUBLISHER.queue_process_message("Maze", resume=True)
 
     def maze_reset(self):
-        PUBLISHER.send_process_message(
+        PUBLISHER.queue_process_message(
             "Maze",
             reset=True,
             wait_for_response=True,

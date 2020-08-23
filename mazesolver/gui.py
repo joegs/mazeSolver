@@ -46,7 +46,7 @@ class ImageArea(GuiElement):
         height, width, _ = self.image.pixels.shape
         real_x = int(x * (width / scaled_width))
         real_y = int(y * (height / scaled_height))
-        PUBLISHER.send_message("ImageClicked", x=real_x, y=real_y)
+        PUBLISHER.queue_message("ImageClicked", x=real_x, y=real_y)
 
     def update_image(self):
         if self.image.pixels is None:
@@ -89,8 +89,8 @@ class ImageControl(GuiElement):
         filename = filedialog.askopenfilename(title="Select an Image")
         if not filename:
             return
-        PUBLISHER.send_message("MazeCancelRequest")
-        PUBLISHER.send_message("ImageSelectionRequest", image_path=filename)
+        PUBLISHER.queue_message("MazeCancelRequest")
+        PUBLISHER.queue_message("ImageSelectionRequest", image_path=filename)
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
@@ -107,16 +107,16 @@ class SolveControl(GuiElement):
         self.cancel_button = ttk.Button(self.frame, text="Cancel")
 
     def _solve_command(self):
-        PUBLISHER.send_message("MazeSolveRequest")
+        PUBLISHER.queue_message("MazeSolveRequest")
 
     def _stop_command(self):
-        PUBLISHER.send_message("MazeStopRequest")
+        PUBLISHER.queue_message("MazeStopRequest")
 
     def _resume_command(self):
-        PUBLISHER.send_message("MazeResumeRequest")
+        PUBLISHER.queue_message("MazeResumeRequest")
 
     def _cancel_command(self):
-        PUBLISHER.send_message("MazeCancelRequest")
+        PUBLISHER.queue_message("MazeCancelRequest")
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
@@ -143,7 +143,7 @@ class SaveControl(GuiElement):
         )
         if not filename:
             return
-        PUBLISHER.send_message("ImageSaveRequest", image_path=filename)
+        PUBLISHER.queue_message("ImageSaveRequest", image_path=filename)
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
@@ -158,10 +158,10 @@ class PointsControl(GuiElement):
         self.end_button = ttk.Button(self.frame, text="Set End Point")
 
     def _start_point_command(self):
-        PUBLISHER.send_message("PointChangeRequest", kind="start")
+        PUBLISHER.queue_message("PointChangeRequest", kind="start")
 
     def _end_point_command(self):
-        PUBLISHER.send_message("PointChangeRequest", kind="end")
+        PUBLISHER.queue_message("PointChangeRequest", kind="end")
 
     def setup(self):
         self.frame.columnconfigure(0, weight=1)
@@ -186,7 +186,7 @@ class ResolutionControl(GuiElement):
 
     def _entry_changed(self, *args):
         resolution = self.string_var.get()
-        PUBLISHER.send_message("ResolutionChangeRequest", resolution=resolution)
+        PUBLISHER.queue_message("ResolutionChangeRequest", resolution=resolution)
 
     def setup(self):
         self.frame.columnconfigure(0, minsize=100)
@@ -217,7 +217,7 @@ class FramerateControl(GuiElement):
 
     def _entry_changed(self, *args):
         framerate = self.string_var.get()
-        PUBLISHER.send_message("FramerateChangeRequest", framerate=framerate)
+        PUBLISHER.queue_message("FramerateChangeRequest", framerate=framerate)
 
     def setup(self):
         self.frame.columnconfigure(0, minsize=100)
@@ -267,7 +267,7 @@ class Application:
         self.image_area.grid(column=1, row=0, sticky="NW")
 
     def periodic_refresh(self):
-        PUBLISHER.process_messages()
+        PUBLISHER.send_messages()
         self.root.after(1000 // 60, self.periodic_refresh)
 
     def start(self):

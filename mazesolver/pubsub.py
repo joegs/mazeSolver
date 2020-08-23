@@ -6,17 +6,11 @@ from typing import Any, Callable, Dict, List, Union
 
 class Subscriber:
     def __init__(self, topic: str, function: Callable[..., Any]):
-        self.function = function
         self.topic = topic
-        self.queue: List[Any] = []
+        self.function = function
 
-    def queue_message(self, **kwargs):
-        self.queue.append(kwargs)
-
-    def process_messages(self):
-        while self.queue:
-            kwargs = self.queue.pop(0)
-            self.function(**kwargs)
+    def receive_message(self, **kwargs):
+        self.function(**kwargs)
 
 
 class ThreadWorker(threading.Thread):
@@ -93,6 +87,7 @@ class ProcessSubscriber:
 
 class Publisher:
     def __init__(self):
+        self._message_queue = []
         self.subscribers: List[Subscriber] = []
         self.thread_subscribers: Dict[str, ThreadSubscriber] = {}
         self.process_subscribers: Dict[str, ProcessSubscriber] = {}
@@ -107,12 +102,12 @@ class Publisher:
         elif isinstance(subscriber, ProcessSubscriber):
             self.process_subscribers[subscriber.name] = subscriber
 
-    def send_message(self, topic: str, **kwargs):
-        for subscriber in self.subscribers:
-            if topic == subscriber.topic:
-                subscriber.queue_message(**kwargs)
+    def queue_message(self, topic: str, **kwargs):
+        self._message_queue.append((topic, kwargs))
+        if topic == "ImageResetRequest":
+            print(self._message_queue)
 
-    def send_thread_message(
+    def queue_thread_message(
         self, name: str, wait_for_response: bool = False, timeout: float = 2, **kwargs
     ):
         subscriber = self.thread_subscribers.get(name, None)
@@ -120,7 +115,7 @@ class Publisher:
             return
         subscriber.queue_message(wait_for_response, timeout, **kwargs)
 
-    def send_process_message(
+    def queue_process_message(
         self,
         name: str,
         wait_for_response: bool = False,
@@ -140,16 +135,22 @@ class Publisher:
             subscriber.queue_message_no_wait(kwargs)
             return False
 
-    def process_messages(self):
-        for name, subscriber in self.process_subscribers.items():
+    def fetch_process_messages(self):
+        for name, process_subscriber in self.process_subscribers.items():
             while True:
                 try:
-                    kwargs = subscriber.worker.output_queue.get_nowait()
+                    kwargs = process_subscriber.worker.output_queue.get_nowait()
                 except Empty:
                     break
-                self.send_message(**kwargs)
-        for subscriber in self.subscribers:
-            subscriber.process_messages()
+                self.queue_message(**kwargs)
+
+    def send_messages(self):
+        self.fetch_process_messages()
+        while self._message_queue:
+            topic, kwargs = self._message_queue.pop(0)
+            for subscriber in self.subscribers:
+                if topic == subscriber.topic:
+                    subscriber.receive_message(**kwargs)
 
 
 PUBLISHER = Publisher()
