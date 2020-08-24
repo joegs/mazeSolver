@@ -256,6 +256,7 @@ class ControlArea(GuiElement):
 class Application:
     def __init__(self, image: MazeImage):
         self.root = tk.Tk()
+        self.root.title("Maze Solver")
         self.control_area = ControlArea(self.root)
         self.image_area = ImageArea(self.root, image)
         self.setup()
