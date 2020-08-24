@@ -91,6 +91,8 @@ class PointController:
         self.image.overlay.append((end_area, self.END_COLOR))
 
     def set_point(self, x: int, y: int):
+        if self.state.working:
+            return
         if self.status == PointStatus.START:
             self.start_point = (x, y)
         elif self.status == PointStatus.END:
@@ -173,6 +175,7 @@ class MazeController:
             return
         self.image.reset_result()
         PUBLISHER.queue_process_message("Maze", start=True, state=self.state)
+        self.state.working = True
 
     def maze_stop(self):
         PUBLISHER.queue_process_message("Maze", stop=True)
@@ -188,6 +191,10 @@ class MazeController:
             message_timeout=0.2,
             response_timeout=0.2,
         )
+        self.state.working = False
+
+    def maze_solve_done(self):
+        self.state.working = False
 
     def setup_subscribers(self):
         subscribers = [
@@ -195,6 +202,7 @@ class MazeController:
             Subscriber("MazeStopRequest", function=self.maze_stop),
             Subscriber("MazeResumeRequest", function=self.maze_resume),
             Subscriber("MazeCancelRequest", function=self.maze_reset),
+            Subscriber("MazeSolveDone", function=self.maze_solve_done),
         ]
         for subscriber in subscribers:
             PUBLISHER.register_subscriber(subscriber)

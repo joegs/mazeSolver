@@ -81,6 +81,14 @@ class Solver(ProcessWorker):
         except Full:
             pass
 
+    def send_done_message(self):
+        try:
+            self.output_queue.put(
+                {"topic": "MazeSolveDone"}, block=True, timeout=0.5,
+            )
+        except Full:
+            pass
+
     def process_run_message(self, kwargs):
         if kwargs.get("start", False):
             state = kwargs["state"]
@@ -163,6 +171,7 @@ class Solver(ProcessWorker):
                 self.send_visited_pixels(block=True)
                 self.send_solution()
                 self.clear_queue()
+                self.send_done_message()
                 return path
             adjacent_pixels = self.get_adjacent_pixels(current_pixel)
             for pixel in adjacent_pixels:
@@ -185,3 +194,4 @@ class Solver(ProcessWorker):
                     self.send_image_reset_request()
                     self.response.set()
                     return
+        self.send_done_message()

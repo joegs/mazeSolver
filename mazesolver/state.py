@@ -8,3 +8,4 @@ class ApplicationState:
         self.framerate = "15"
         self.start_point = (0, 0)
         self.end_point = (0, 0)
+        self.working = False

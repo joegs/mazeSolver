@@ -104,8 +104,6 @@ class Publisher:
 
     def queue_message(self, topic: str, **kwargs):
         self._message_queue.append((topic, kwargs))
-        if topic == "ImageResetRequest":
-            print(self._message_queue)
 
     def queue_thread_message(
         self, name: str, wait_for_response: bool = False, timeout: float = 2, **kwargs
