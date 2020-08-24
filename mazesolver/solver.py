@@ -167,9 +167,9 @@ class Solver(ProcessWorker):
             adjacent_pixels = self.get_adjacent_pixels(current_pixel)
             for pixel in adjacent_pixels:
                 y, x = pixel
-                if self.image.bw_pixels[pixel] == 0 or (
+                if (
                     x < 0 or y < 0 or x >= width or y >= height
-                ):
+                ) or self.image.bw_pixels[pixel] == 0:
                     continue
                 elif self.visited[pixel] != self.VISITED_VALUE:
                     self.visited[pixel] = self.VISITED_VALUE
