@@ -4,6 +4,7 @@ from typing import Tuple
 
 from mazesolver.image import MazeImage
 from mazesolver.pubsub import PUBLISHER, Subscriber
+from mazesolver.config import DEFAULT_FRAMERATE, DEFAULT_RESOLUTION
 
 
 class GuiElement:
@@ -172,17 +173,15 @@ class PointsControl(GuiElement):
 
 
 class ResolutionControl(GuiElement):
-    DEFAULT_RESOLUTION = "300"
-
     def __init__(self, parent):
         super().__init__(parent)
         self.label = ttk.Label(self.frame, text="Scale Resolution")
         self.entry = ttk.Entry(self.frame, width=10)
-        self.string_var = tk.StringVar(value=self.DEFAULT_RESOLUTION)
+        self.string_var = tk.StringVar(value=f"{DEFAULT_RESOLUTION}")
         self.setup_subscribers()
 
     def reset(self):
-        self.string_var.set(self.DEFAULT_RESOLUTION)
+        self.string_var.set(f"{DEFAULT_RESOLUTION}")
 
     def _entry_changed(self, *args):
         resolution = self.string_var.get()
@@ -203,17 +202,15 @@ class ResolutionControl(GuiElement):
 
 
 class FramerateControl(GuiElement):
-    DEFAULT_FRAMERATE = "15"
-
     def __init__(self, parent):
         super().__init__(parent)
         self.label = ttk.Label(self.frame, text="Framerate")
         self.entry = ttk.Entry(self.frame, width=10)
-        self.string_var = tk.StringVar(value=self.DEFAULT_FRAMERATE)
+        self.string_var = tk.StringVar(value=f"{DEFAULT_FRAMERATE}")
         self.setup_subscribers()
 
     def reset(self):
-        self.string_var.set(self.DEFAULT_FRAMERATE)
+        self.string_var.set(f"{DEFAULT_FRAMERATE}")
 
     def _entry_changed(self, *args):
         framerate = self.string_var.get()

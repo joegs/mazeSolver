@@ -4,12 +4,12 @@ import cv2
 import numpy as np
 from PIL import Image, ImageTk
 
+from mazesolver.config import DEFAULT_SCALE_RESOLUTION
+
 
 class MazeImage:
-    DEFAULT_SCALE_RESOLUTION = 300
-
     def __init__(self):
-        self.scaled_resolution = self.DEFAULT_SCALE_RESOLUTION
+        self.scaled_resolution = DEFAULT_SCALE_RESOLUTION
         self.pixels: np.ndarray = np.zeros(0)
         self.bw_pixels: np.ndarray = np.zeros(0)
         self.result: np.ndarray = np.zeros(0)

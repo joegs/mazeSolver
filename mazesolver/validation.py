@@ -2,14 +2,18 @@ import os.path
 from tkinter import messagebox
 
 from mazesolver.pubsub import PUBLISHER
+from mazesolver.config import (
+    DEFAULT_FRAMERATE,
+    DEFAULT_RESOLUTION,
+    MIN_FRAMERATE,
+    MAX_FRAMERATE,
+    MIN_RESOLUTION,
+    MAX_RESOLUTION,
+)
 from mazesolver.state import ApplicationState
 
 
 class FramerateValidator:
-    DEFAULT_FRAMERATE = 15
-    MIN_FRAMERATE = 5
-    MAX_FRAMERATE = 60
-
     def __init__(self, state: ApplicationState):
         self.state = state
 
@@ -20,7 +24,7 @@ class FramerateValidator:
     def show_framerate_error(self):
         messagebox.showerror(
             title="Error",
-            message=f"Invalid Framerate: framerate must be an integer between {self.MIN_FRAMERATE} and {self.MAX_FRAMERATE}",
+            message=f"Invalid Framerate: framerate must be an integer between {MIN_FRAMERATE} and {MAX_FRAMERATE}",
         )
 
     def validate_framerate(self):
@@ -30,20 +34,13 @@ class FramerateValidator:
             self.show_framerate_error()
             PUBLISHER.queue_message("FramerateResetRequest")
             raise ValueError(f"Invalid Framerate: {self.framerate}")
-        if (
-            integer_framerate < self.MIN_FRAMERATE
-            or integer_framerate > self.MAX_FRAMERATE
-        ):
+        if integer_framerate < MIN_FRAMERATE or integer_framerate > MAX_FRAMERATE:
             PUBLISHER.queue_message("FramerateResetRequest")
             self.show_framerate_error()
             raise ValueError(f"Invalid Framerate: {self.framerate}")
 
 
 class ResolutionValidator:
-    DEFAULT_RESOLUTION = 300
-    MIN_RESOLUTION = 50
-    MAX_RESOLUTION = 1200
-
     def __init__(self, state):
         self.state = state
 
@@ -54,7 +51,7 @@ class ResolutionValidator:
     def show_resolution_error(self):
         messagebox.showerror(
             title="Error",
-            message=f"Invalid Resolution: resolution must be an integer between {self.MIN_RESOLUTION} and {self.MAX_RESOLUTION}",
+            message=f"Invalid Resolution: resolution must be an integer between {MIN_RESOLUTION} and {MAX_RESOLUTION}",
         )
 
     def validate_resolution(self):
@@ -64,10 +61,7 @@ class ResolutionValidator:
             PUBLISHER.queue_message("ResolutionResetRequest")
             self.show_resolution_error()
             raise ValueError(f"Invalid Resolution: {self.resolution}")
-        if (
-            integer_resolution < self.MIN_RESOLUTION
-            or integer_resolution > self.MAX_RESOLUTION
-        ):
+        if integer_resolution < MIN_RESOLUTION or integer_resolution > MAX_RESOLUTION:
             PUBLISHER.queue_message("ResolutionResetRequest")
             self.show_resolution_error()
             raise ValueError(f"Invalid Resolution: {self.resolution}")
