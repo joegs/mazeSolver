@@ -1,16 +1,20 @@
 import os.path
 from tkinter import messagebox
 
-from mazesolver.pubsub import PUBLISHER
 from mazesolver.config import (
     DEFAULT_FRAMERATE,
     DEFAULT_RESOLUTION,
-    MIN_FRAMERATE,
     MAX_FRAMERATE,
-    MIN_RESOLUTION,
     MAX_RESOLUTION,
+    MIN_FRAMERATE,
+    MIN_RESOLUTION,
 )
+from mazesolver.pubsub import PUBLISHER
 from mazesolver.state import ApplicationState
+
+
+def isInRange(value: int, minimum: int, maximum: int):
+    return value >= minimum and value <= maximum
 
 
 class FramerateValidator:
@@ -34,7 +38,7 @@ class FramerateValidator:
             self.show_framerate_error()
             PUBLISHER.queue_message("FramerateResetRequest")
             raise ValueError(f"Invalid Framerate: {self.framerate}")
-        if integer_framerate < MIN_FRAMERATE or integer_framerate > MAX_FRAMERATE:
+        if not isInRange(integer_framerate, MIN_FRAMERATE, MAX_FRAMERATE):
             PUBLISHER.queue_message("FramerateResetRequest")
             self.show_framerate_error()
             raise ValueError(f"Invalid Framerate: {self.framerate}")
@@ -61,7 +65,7 @@ class ResolutionValidator:
             PUBLISHER.queue_message("ResolutionResetRequest")
             self.show_resolution_error()
             raise ValueError(f"Invalid Resolution: {self.resolution}")
-        if integer_resolution < MIN_RESOLUTION or integer_resolution > MAX_RESOLUTION:
+        if not isInRange(integer_resolution, MIN_RESOLUTION, MAX_RESOLUTION):
             PUBLISHER.queue_message("ResolutionResetRequest")
             self.show_resolution_error()
             raise ValueError(f"Invalid Resolution: {self.resolution}")
