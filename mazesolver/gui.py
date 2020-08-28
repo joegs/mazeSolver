@@ -1,10 +1,11 @@
+import importlib.resources
 import tkinter as tk
 from tkinter import filedialog, ttk
 from typing import Tuple
 
+from mazesolver.config import DEFAULT_FRAMERATE, DEFAULT_RESOLUTION
 from mazesolver.image import MazeImage
 from mazesolver.pubsub import PUBLISHER, Subscriber
-from mazesolver.config import DEFAULT_FRAMERATE, DEFAULT_RESOLUTION
 
 
 class GuiElement:
@@ -254,6 +255,7 @@ class Application:
     def __init__(self, image: MazeImage):
         self.root = tk.Tk()
         self.root.title("Maze Solver")
+        self.load_icon()
         self.control_area = ControlArea(self.root)
         self.image_area = ImageArea(self.root, image)
         self.setup()
@@ -271,3 +273,8 @@ class Application:
     def start(self):
         self.periodic_refresh()
         self.root.mainloop()
+
+    def load_icon(self):
+        path = importlib.resources.path("mazesolver", "icon.ico")
+        with path as file:
+            self.root.iconbitmap(file)
