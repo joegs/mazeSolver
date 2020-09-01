@@ -1,5 +1,5 @@
 from queue import Empty, Full
-from typing import Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -13,7 +13,7 @@ class Solver(ProcessWorker):
     VISITED_COLOR = (200, 200, 200)
     SOLUTION_COLOR = (0, 0, 255)
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(input_size=1, output_size=1, daemon=True)
         self.reset = False
         self.waiting = False
@@ -25,7 +25,7 @@ class Solver(ProcessWorker):
         self.frametime = 1 / 15
         self.timer = Timer()
 
-    def load_state(self, state: ApplicationState):
+    def load_state(self, state: ApplicationState) -> None:
         # start and end points are inverted, since image indexes are in the
         # form (y, x), instead of (x, y)
         self.image = state.image
@@ -35,15 +35,15 @@ class Solver(ProcessWorker):
         self.visited = np.zeros(self.image.bw_pixels.shape, dtype=np.uint8)
         self.solution = np.zeros(self.image.bw_pixels.shape, dtype=np.uint8)
 
-    def get_adjacent_pixels(self, pixel: Tuple[int, int]):
+    def get_adjacent_pixels(self, pixel: Tuple[int, int]) -> List[Tuple[int, int]]:
         x, y = pixel
         return [(x + 1, y), (x, y + 1), (x - 1, y), (x, y - 1)]
 
-    def mark_solution(self, path):
+    def mark_solution(self, path: List[Tuple[int, int]]) -> None:
         for x in path:
             self.solution[x] = self.VISITED_VALUE
 
-    def send_visited_pixels(self, block=False):
+    def send_visited_pixels(self, block: bool = False) -> None:
         region = self.visited.nonzero()
         try:
             self.output_queue.put(
@@ -58,7 +58,7 @@ class Solver(ProcessWorker):
         except Full:
             pass
 
-    def send_solution(self):
+    def send_solution(self) -> None:
         region = self.solution.nonzero()
         try:
             self.output_queue.put(
@@ -73,7 +73,7 @@ class Solver(ProcessWorker):
         except Full:
             pass
 
-    def send_image_reset_request(self):
+    def send_image_reset_request(self) -> None:
         try:
             self.output_queue.put(
                 {"topic": "ImageResetRequest"}, block=True, timeout=0.5,
@@ -81,7 +81,7 @@ class Solver(ProcessWorker):
         except Full:
             pass
 
-    def send_done_message(self):
+    def send_done_message(self) -> None:
         try:
             self.output_queue.put(
                 {"topic": "MazeSolveDone"}, block=True, timeout=0.5,
@@ -89,14 +89,14 @@ class Solver(ProcessWorker):
         except Full:
             pass
 
-    def process_run_message(self, kwargs):
+    def process_run_message(self, kwargs: Any) -> None:
         if kwargs.get("start", False):
             state = kwargs["state"]
             self.solve(state)
         elif kwargs.get("reset", False):
             self.response.set()
 
-    def run(self):
+    def run(self) -> None:
         while True:
             message_received = False
             self.received.wait()
@@ -110,13 +110,13 @@ class Solver(ProcessWorker):
             if message_received:
                 self.clear_queue()
 
-    def process_solving_message(self, kwargs):
+    def process_solving_message(self, kwargs: Dict[str, bool]) -> None:
         if kwargs.get("stop", False):
             self.wait_for_resume()
         elif kwargs.get("reset", False):
             self.reset = True
 
-    def check_messages(self):
+    def check_messages(self) -> None:
         if not self.received.is_set():
             return
         while True:
@@ -132,7 +132,7 @@ class Solver(ProcessWorker):
                 self.clear_queue()
                 break
 
-    def process_waiting_message(self, kwargs):
+    def process_waiting_message(self, kwargs: Any) -> None:
         if kwargs.get("resume", False):
             self.waiting = False
             self.clear_queue()
@@ -141,7 +141,7 @@ class Solver(ProcessWorker):
             self.reset = True
             self.clear_queue()
 
-    def wait_for_resume(self):
+    def wait_for_resume(self) -> None:
         self.waiting = True
         self.received.clear()
         while self.waiting:
@@ -157,7 +157,7 @@ class Solver(ProcessWorker):
             if message_received:
                 self.clear_queue()
 
-    def solve(self, state: ApplicationState):
+    def solve(self, state: ApplicationState) -> Optional[List[Tuple[int, int]]]:
         self.clear_queue()
         self.load_state(state)
         queue = [[self.start_point]]
@@ -193,5 +193,6 @@ class Solver(ProcessWorker):
                     self.reset = False
                     self.send_image_reset_request()
                     self.response.set()
-                    return
+                    return None
         self.send_done_message()
+        return None

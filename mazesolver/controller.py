@@ -15,7 +15,7 @@ class PointStatus(Enum):
     END = "end"
 
     @classmethod
-    def from_value(cls, value: str):
+    def from_value(cls, value: str) -> "PointStatus":
         for member in PointStatus:
             if member.value == value:
                 return member
@@ -27,13 +27,13 @@ class StateController:
         self.state = state
         self.setup_subscribers()
 
-    def _set_resolution(self, resolution: str):
+    def _set_resolution(self, resolution: str) -> None:
         self.state.resolution = resolution
 
-    def _set_framerate(self, framerate: str):
+    def _set_framerate(self, framerate: str) -> None:
         self.state.framerate = framerate
 
-    def setup_subscribers(self):
+    def setup_subscribers(self) -> None:
         subscribers = [
             Subscriber("FramerateChangeRequest", function=self._set_framerate),
             Subscriber("ResolutionChangeRequest", function=self._set_resolution),
@@ -53,26 +53,26 @@ class PointController:
         self.setup_subscribers()
 
     @property
-    def start_point(self):
+    def start_point(self) -> Tuple[int, int]:
         return self.state.start_point
 
     @start_point.setter
-    def start_point(self, value):
+    def start_point(self, value: Tuple[int, int]) -> None:
         self.state.start_point = value
 
     @property
-    def end_point(self):
+    def end_point(self) -> Tuple[int, int]:
         return self.state.end_point
 
     @end_point.setter
-    def end_point(self, value):
+    def end_point(self, value: Tuple[int, int]) -> None:
         self.state.end_point = value
 
-    def reset_points(self):
+    def reset_points(self) -> None:
         self.start_point = (0, 0)
         self.end_point = (0, 0)
 
-    def set_status(self, kind: str):
+    def set_status(self, kind: str) -> None:
         self.status = PointStatus.from_value(kind)
 
     def get_area(self, point: Tuple[int, int]) -> Tuple[int, int, int, int]:
@@ -82,15 +82,15 @@ class PointController:
         y2 = y1 + size
         return (x1, y1, x2, y2)
 
-    def set_start_point(self):
+    def set_start_point(self) -> None:
         start_area = self.get_area(self.start_point)
         self.image.overlay.append((start_area, self.START_COLOR))
 
-    def set_end_point(self):
+    def set_end_point(self) -> None:
         end_area = self.get_area(self.end_point)
         self.image.overlay.append((end_area, self.END_COLOR))
 
-    def set_point(self, x: int, y: int):
+    def set_point(self, x: int, y: int) -> None:
         if self.state.working:
             return
         if self.status == PointStatus.START:
@@ -105,7 +105,7 @@ class PointController:
             PUBLISHER.queue_message("ImageUpdateRequest")
         self.status = PointStatus.NONE
 
-    def setup_subscribers(self):
+    def setup_subscribers(self) -> None:
         subscribers = [
             Subscriber("PointChangeRequest", function=self.set_status),
             Subscriber("ImageClicked", function=self.set_point),
@@ -127,7 +127,7 @@ class ImageController:
         self.image = self.state.image
         self.setup_subscribers()
 
-    def image_selection(self, image_path: str):
+    def image_selection(self, image_path: str) -> None:
         try:
             self.validator.validate_resolution()
             self.image.scaled_resolution = int(self.state.resolution)
@@ -136,11 +136,11 @@ class ImageController:
         self.image.overlay.clear()
         PUBLISHER.queue_message("ImageChangeRequest", image_path=image_path)
 
-    def image_reset(self):
+    def image_reset(self) -> None:
         self.image.reset_result()
         PUBLISHER.queue_message("ImageUpdateRequest")
 
-    def image_save(self, image_path: str):
+    def image_save(self, image_path: str) -> None:
         try:
             self.validator.validate_image()
             self.validator.validate_save_format(image_path)
@@ -148,7 +148,7 @@ class ImageController:
             return
         self.image.save_result(image_path)
 
-    def setup_subscribers(self):
+    def setup_subscribers(self) -> None:
         subscribers = [
             Subscriber("ImageSelectionRequest", function=self.image_selection),
             Subscriber("ImageResetRequest", function=self.image_reset),
@@ -167,7 +167,7 @@ class MazeController:
         self.image = self.state.image
         self.setup_subscribers()
 
-    def maze_solve(self):
+    def maze_solve(self) -> None:
         try:
             self.validator.validate_image()
             self.validator.validate_framerate()
@@ -177,13 +177,13 @@ class MazeController:
         PUBLISHER.queue_process_message("Maze", start=True, state=self.state)
         self.state.working = True
 
-    def maze_stop(self):
+    def maze_stop(self) -> None:
         PUBLISHER.queue_process_message("Maze", stop=True)
 
-    def maze_resume(self):
+    def maze_resume(self) -> None:
         PUBLISHER.queue_process_message("Maze", resume=True)
 
-    def maze_reset(self):
+    def maze_reset(self) -> None:
         PUBLISHER.queue_process_message(
             "Maze",
             reset=True,
@@ -193,10 +193,10 @@ class MazeController:
         )
         self.state.working = False
 
-    def maze_solve_done(self):
+    def maze_solve_done(self) -> None:
         self.state.working = False
 
-    def setup_subscribers(self):
+    def setup_subscribers(self) -> None:
         subscribers = [
             Subscriber("MazeSolveRequest", function=self.maze_solve),
             Subscriber("MazeStopRequest", function=self.maze_stop),
@@ -209,7 +209,7 @@ class MazeController:
 
 
 class ApplicationController:
-    def __init__(self):
+    def __init__(self) -> None:
         self.image = MazeImage()
         self.state = ApplicationState(self.image)
         self.validator = Validator(self.state)
@@ -218,16 +218,16 @@ class ApplicationController:
         self.solver = Solver()
         self.setup_subscribers()
 
-    def create_controllers(self):
+    def create_controllers(self) -> None:
         state_controller = StateController(self.state)
         point_controller = PointController(self.state)
         image_controller = ImageController(self.state, self.validator)
         maze_controller = MazeController(self.state, self.validator)
 
-    def setup_subscribers(self):
+    def setup_subscribers(self) -> None:
         subscribers = [ProcessSubscriber("Maze", worker=self.solver)]
         for subscriber in subscribers:
             PUBLISHER.register_subscriber(subscriber)
 
-    def start(self):
+    def start(self) -> None:
         self.application.start()

@@ -1,7 +1,7 @@
 import multiprocessing as mp
 import threading
 from queue import Empty, Full, Queue
-from typing import Any, Callable, Dict, List, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 
 class Subscriber:
@@ -9,19 +9,21 @@ class Subscriber:
         self.topic = topic
         self.function = function
 
-    def receive_message(self, **kwargs):
+    def receive_message(self, **kwargs: Any) -> None:
         self.function(**kwargs)
 
 
 class ThreadWorker(threading.Thread):
-    def __init__(self, input_size=0, output_size=0, *args, **kwargs):
+    def __init__(
+        self, *args: Any, input_size: int = 0, output_size: int = 0, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.input_queue = mp.Queue(input_size)
-        self.output_queue = mp.Queue(output_size)
+        self.input_queue: "Queue[Any]" = mp.Queue(input_size)
+        self.output_queue: "Queue[Any]" = mp.Queue(output_size)
         self.received = mp.Event()
         self.response = mp.Event()
 
-    def clear_queue(self):
+    def clear_queue(self) -> None:
         while True:
             try:
                 self.input_queue.get_nowait()
@@ -36,7 +38,7 @@ class ThreadSubscriber:
         self.worker = worker
         self.worker.start()
 
-    def queue_message_no_wait(self, kwargs):
+    def queue_message_no_wait(self, kwargs: Dict[str, Any]) -> None:
         try:
             self.worker.input_queue.put_nowait(kwargs)
         except Full:
@@ -44,7 +46,7 @@ class ThreadSubscriber:
         self.worker.received.set()
 
     def queue_message_wait(
-        self, message_timeout: float, response_timeout: float, kwargs
+        self, message_timeout: float, response_timeout: float, kwargs: Dict[str, Any]
     ) -> bool:
         self.worker.received.set()
         try:
@@ -57,14 +59,16 @@ class ThreadSubscriber:
 
 
 class ProcessWorker(mp.Process):
-    def __init__(self, input_size=0, output_size=0, *args, **kwargs):
+    def __init__(
+        self, *args: Any, input_size: int = 0, output_size: int = 0, **kwargs: Any
+    ):
         super().__init__(*args, **kwargs)
-        self.input_queue = mp.Queue(input_size)
-        self.output_queue = mp.Queue(output_size)
+        self.input_queue: "Queue[Any]" = mp.Queue(input_size)
+        self.output_queue: "Queue[Any]" = mp.Queue(output_size)
         self.received = mp.Event()
         self.response = mp.Event()
 
-    def clear_queue(self):
+    def clear_queue(self) -> None:
         while True:
             try:
                 self.input_queue.get_nowait()
@@ -79,7 +83,7 @@ class ProcessSubscriber:
         self.worker = worker
         self.worker.start()
 
-    def queue_message_no_wait(self, kwargs):
+    def queue_message_no_wait(self, kwargs: Dict[str, Any]) -> None:
         try:
             self.worker.input_queue.put_nowait(kwargs)
         except Full:
@@ -87,7 +91,7 @@ class ProcessSubscriber:
         self.worker.received.set()
 
     def queue_message_wait(
-        self, message_timeout: float, response_timeout: float, kwargs
+        self, message_timeout: float, response_timeout: float, kwargs: Dict[str, Any]
     ) -> bool:
         self.worker.received.set()
         try:
@@ -100,15 +104,15 @@ class ProcessSubscriber:
 
 
 class Publisher:
-    def __init__(self):
-        self._message_queue = []
+    def __init__(self) -> None:
+        self._message_queue: List[Tuple[str, Dict[str, Any]]] = []
         self.subscribers: List[Subscriber] = []
         self.thread_subscribers: Dict[str, ThreadSubscriber] = {}
         self.process_subscribers: Dict[str, ProcessSubscriber] = {}
 
     def register_subscriber(
         self, subscriber: Union[Subscriber, ThreadSubscriber, ProcessSubscriber]
-    ):
+    ) -> None:
         if isinstance(subscriber, Subscriber):
             self.subscribers.append(subscriber)
         elif isinstance(subscriber, ThreadSubscriber):
@@ -116,7 +120,7 @@ class Publisher:
         elif isinstance(subscriber, ProcessSubscriber):
             self.process_subscribers[subscriber.name] = subscriber
 
-    def queue_message(self, topic: str, **kwargs):
+    def queue_message(self, topic: str, **kwargs: Any) -> None:
         self._message_queue.append((topic, kwargs))
 
     def queue_thread_message(
@@ -125,7 +129,7 @@ class Publisher:
         wait_for_response: bool = False,
         message_timeout: float = 1,
         response_timeout: float = 1,
-        **kwargs,
+        **kwargs: Any,
     ) -> bool:
         subscriber = self.thread_subscribers.get(name, None)
         if subscriber is None:
@@ -145,7 +149,7 @@ class Publisher:
         wait_for_response: bool = False,
         message_timeout: float = 1,
         response_timeout: float = 1,
-        **kwargs,
+        **kwargs: Any,
     ) -> bool:
         subscriber = self.process_subscribers.get(name, None)
         if subscriber is None:
@@ -159,7 +163,7 @@ class Publisher:
             subscriber.queue_message_no_wait(kwargs)
             return False
 
-    def fetch_thread_messages(self):
+    def fetch_thread_messages(self) -> None:
         for name, thread_subscriber in self.thread_subscribers.items():
             while True:
                 try:
@@ -168,7 +172,7 @@ class Publisher:
                     break
                 self.queue_message(**kwargs)
 
-    def fetch_process_messages(self):
+    def fetch_process_messages(self) -> None:
         for name, process_subscriber in self.process_subscribers.items():
             while True:
                 try:
@@ -177,7 +181,7 @@ class Publisher:
                     break
                 self.queue_message(**kwargs)
 
-    def send_messages(self):
+    def send_messages(self) -> None:
         self.fetch_thread_messages()
         self.fetch_process_messages()
         while self._message_queue:

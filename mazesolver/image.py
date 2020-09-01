@@ -8,7 +8,7 @@ from mazesolver.config import DEFAULT_SCALE_RESOLUTION
 
 
 class MazeImage:
-    def __init__(self):
+    def __init__(self) -> None:
         self.scaled_resolution = DEFAULT_SCALE_RESOLUTION
         self.pixels: np.ndarray = np.zeros(0)
         self.bw_pixels: np.ndarray = np.zeros(0)
@@ -16,7 +16,7 @@ class MazeImage:
         self.overlay: List[Tuple[Tuple[int, int, int, int], Tuple[int, int, int]]] = []
         self.loaded = False
 
-    def get_scaled_size(self):
+    def get_scaled_size(self) -> Tuple[int, int]:
         height, width, _ = self.pixels.shape
         ratio = width / height
         if width > height:
@@ -28,18 +28,18 @@ class MazeImage:
         size = (scaled_width, scaled_height)
         return size
 
-    def _load_pixels(self, image_path: str):
+    def _load_pixels(self, image_path: str) -> None:
         self.pixels = cv2.imread(image_path, cv2.IMREAD_COLOR)
         self.pixels = cv2.cvtColor(self.pixels, cv2.COLOR_BGR2RGB)
         scaled_size = self.get_scaled_size()
         self.pixels = cv2.resize(self.pixels, scaled_size)
 
-    def _load_bw_pixels(self):
+    def _load_bw_pixels(self) -> None:
         bw_pixels = cv2.cvtColor(self.pixels, cv2.COLOR_RGB2GRAY)
         _, bw_pixels = cv2.threshold(bw_pixels, 200, 255, cv2.THRESH_BINARY)
         self.bw_pixels = bw_pixels
 
-    def load_image(self, image_path: str):
+    def load_image(self, image_path: str) -> None:
         if not image_path:
             return
         self._load_pixels(image_path)
@@ -47,7 +47,7 @@ class MazeImage:
         self.result = np.copy(self.pixels)
         self.loaded = True
 
-    def apply_overlay(self):
+    def apply_overlay(self) -> None:
         for area, color in self.overlay:
             x1, y1, x2, y2 = area
             self.result[y1:y2, x1:x2] = color
@@ -63,9 +63,9 @@ class MazeImage:
         tk_image = ImageTk.PhotoImage(image)
         return tk_image
 
-    def save_result(self, image_path: str):
+    def save_result(self, image_path: str) -> None:
         image = Image.fromarray(self.result)
         image.save(image_path)
 
-    def reset_result(self):
+    def reset_result(self) -> None:
         self.result = np.copy(self.pixels)
