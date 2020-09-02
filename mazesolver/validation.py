@@ -13,7 +13,7 @@ from mazesolver.state import ApplicationState
 
 
 def isInRange(value: int, minimum: int, maximum: int) -> bool:
-    return value >= minimum and value <= maximum
+    return minimum <= value <= maximum
 
 
 class FramerateValidator:
