@@ -5,6 +5,7 @@ import numpy as np
 from PIL import Image, ImageTk
 
 from mazesolver.config import DEFAULT_SCALE_RESOLUTION
+from mazesolver.types import Color, Size, RegionOfInterest
 
 
 class MazeImage:
@@ -13,10 +14,10 @@ class MazeImage:
         self.pixels: np.ndarray = np.zeros(0)
         self.bw_pixels: np.ndarray = np.zeros(0)
         self.result: np.ndarray = np.zeros(0)
-        self.overlay: List[Tuple[Tuple[int, int, int, int], Tuple[int, int, int]]] = []
+        self.overlay: List[Tuple[RegionOfInterest, Color]] = []
         self.loaded = False
 
-    def _get_scaled_size(self) -> Tuple[int, int]:
+    def _get_scaled_size(self) -> Size:
         height, width, _ = self.pixels.shape
         ratio = width / height
         if width > height:
@@ -25,7 +26,7 @@ class MazeImage:
         else:
             scaled_height = self.scaled_resolution
             scaled_width = int(scaled_height * ratio)
-        size = (scaled_width, scaled_height)
+        size = Size(scaled_width, scaled_height)
         return size
 
     def _load_pixels(self, image_path: str) -> None:
@@ -52,9 +53,7 @@ class MazeImage:
             x1, y1, x2, y2 = area
             self.result[y1:y2, x1:x2] = color
 
-    def get_tk_image(
-        self, size: Optional[Tuple[int, int]] = None
-    ) -> ImageTk.PhotoImage:
+    def get_tk_image(self, size: Optional[Size] = None) -> ImageTk.PhotoImage:
         self.apply_overlay()
         pixels = self.result
         if size:

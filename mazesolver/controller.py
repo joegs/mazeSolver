@@ -1,11 +1,11 @@
 from enum import Enum
-from typing import Tuple
 
 from mazesolver.gui import Application
 from mazesolver.image import MazeImage
 from mazesolver.pubsub import PUBLISHER, ProcessSubscriber, Subscriber
 from mazesolver.solver import Solver
 from mazesolver.state import ApplicationState
+from mazesolver.types import Point, RegionOfInterest
 from mazesolver.validation import Validator
 
 
@@ -53,34 +53,35 @@ class PointController:
         self._setup_subscribers()
 
     @property
-    def start_point(self) -> Tuple[int, int]:
+    def start_point(self) -> Point:
         return self.state.start_point
 
     @start_point.setter
-    def start_point(self, value: Tuple[int, int]) -> None:
+    def start_point(self, value: Point) -> None:
         self.state.start_point = value
 
     @property
-    def end_point(self) -> Tuple[int, int]:
+    def end_point(self) -> Point:
         return self.state.end_point
 
     @end_point.setter
-    def end_point(self, value: Tuple[int, int]) -> None:
+    def end_point(self, value: Point) -> None:
         self.state.end_point = value
 
     def reset_points(self) -> None:
-        self.start_point = (0, 0)
-        self.end_point = (0, 0)
+        self.start_point = Point(0, 0)
+        self.end_point = Point(0, 0)
 
     def set_status(self, kind: str) -> None:
         self.status = PointStatus.from_value(kind)
 
-    def _get_area(self, point: Tuple[int, int]) -> Tuple[int, int, int, int]:
+    def _get_area(self, point: Point) -> RegionOfInterest:
         size = round(self.image.scaled_resolution / 100)
-        x1, y1 = point
+        x1 = point.x
+        y1 = point.y
         x2 = x1 + size
         y2 = y1 + size
-        return (x1, y1, x2, y2)
+        return RegionOfInterest(x1, y1, x2, y2)
 
     def _set_start_point(self) -> None:
         start_area = self._get_area(self.start_point)
@@ -94,9 +95,9 @@ class PointController:
         if self.state.working:
             return
         if self.status == PointStatus.START:
-            self.start_point = (x, y)
+            self.start_point = Point(x, y)
         elif self.status == PointStatus.END:
-            self.end_point = (x, y)
+            self.end_point = Point(x, y)
         if self.status != PointStatus.NONE:
             self.image.reset_result()
             self.image.overlay.clear()

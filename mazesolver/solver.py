@@ -1,17 +1,19 @@
 from queue import Empty, Full
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
 from mazesolver.pubsub import ProcessWorker
 from mazesolver.state import ApplicationState
 from mazesolver.timer import Timer
+from mazesolver.types import Color, Point
+
 
 
 class Solver(ProcessWorker):
     VISITED_VALUE = 200
-    VISITED_COLOR = (200, 200, 200)
-    SOLUTION_COLOR = (0, 0, 255)
+    VISITED_COLOR = Color(200, 200, 200)
+    SOLUTION_COLOR = Color(0, 0, 255)
 
     def __init__(self) -> None:
         super().__init__(input_size=1, output_size=1, daemon=True)
@@ -20,8 +22,8 @@ class Solver(ProcessWorker):
         self.image: np.ndarray = np.zeros(0)
         self.visited: np.ndarray = np.zeros(0)
         self.solution: np.ndarray = np.zeros(0)
-        self.start_point = (0, 0)
-        self.end_point = (0, 0)
+        self.start_point = Point(0, 0)
+        self.end_point = Point(0, 0)
         self.frametime = 1 / 15
         self.timer = Timer()
 
@@ -35,11 +37,11 @@ class Solver(ProcessWorker):
         self.visited = np.zeros(self.image.bw_pixels.shape, dtype=np.uint8)
         self.solution = np.zeros(self.image.bw_pixels.shape, dtype=np.uint8)
 
-    def _get_adjacent_pixels(self, pixel: Tuple[int, int]) -> List[Tuple[int, int]]:
+    def _get_adjacent_pixels(self, pixel: Point) -> List[Point]:
         x, y = pixel
-        return [(x + 1, y), (x, y + 1), (x - 1, y), (x, y - 1)]
+        return [Point(x + 1, y), Point(x, y + 1), Point(x - 1, y), Point(x, y - 1)]
 
-    def _mark_solution(self, path: List[Tuple[int, int]]) -> None:
+    def _mark_solution(self, path: List[Point]) -> None:
         for x in path:
             self.solution[x] = self.VISITED_VALUE
 
@@ -157,7 +159,7 @@ class Solver(ProcessWorker):
             if message_received:
                 self.clear_queue()
 
-    def solve(self, state: ApplicationState) -> Optional[List[Tuple[int, int]]]:
+    def solve(self, state: ApplicationState) -> Optional[List[Point]]:
         self.clear_queue()
         self._load_state(state)
         queue = [[self.start_point]]

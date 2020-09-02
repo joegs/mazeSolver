@@ -1,11 +1,12 @@
 import importlib.resources
 import tkinter as tk
 from tkinter import filedialog, ttk
-from typing import Any, Tuple, Union
+from typing import Any, Union
 
 from mazesolver.config import DEFAULT_FRAMERATE, DEFAULT_RESOLUTION
 from mazesolver.image import MazeImage
 from mazesolver.pubsub import PUBLISHER, Subscriber
+from mazesolver.types import Color, Size
 
 
 class GuiElement:
@@ -29,7 +30,7 @@ class ImageArea(GuiElement):
         self.label = ttk.Label(self.frame)
         self.image = image
 
-    def _get_scaled_size(self) -> Tuple[int, int]:
+    def _get_scaled_size(self) -> Size:
         height, width, _ = self.image.pixels.shape
         ratio = width / height
         if width > height:
@@ -38,7 +39,7 @@ class ImageArea(GuiElement):
         else:
             scaled_height = self.MAX_HEIGHT
             scaled_width = int(scaled_height * ratio)
-        size = (scaled_width, scaled_height)
+        size = Size(scaled_width, scaled_height)
         return size
 
     def _image_clicked(self, event: tk.Event) -> None:
@@ -62,7 +63,7 @@ class ImageArea(GuiElement):
         self.image.load_image(image_path)
         self.update_image()
 
-    def replace_pixels(self, region: Any, color: Tuple[int, int, int]) -> None:
+    def replace_pixels(self, region: Any, color: Color) -> None:
         self.image.result[region] = color
         self.update_image()
 
