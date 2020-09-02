@@ -139,9 +139,8 @@ class Publisher:
                 message_timeout, response_timeout, kwargs
             )
             return response
-        else:
-            subscriber.queue_message_no_wait(kwargs)
-            return False
+        subscriber.queue_message_no_wait(kwargs)
+        return False
 
     def queue_process_message(
         self,
@@ -159,11 +158,10 @@ class Publisher:
                 message_timeout, response_timeout, kwargs
             )
             return response
-        else:
-            subscriber.queue_message_no_wait(kwargs)
-            return False
+        subscriber.queue_message_no_wait(kwargs)
+        return False
 
-    def fetch_thread_messages(self) -> None:
+    def _fetch_thread_messages(self) -> None:
         for name, thread_subscriber in self.thread_subscribers.items():
             while True:
                 try:
@@ -172,7 +170,7 @@ class Publisher:
                     break
                 self.queue_message(**kwargs)
 
-    def fetch_process_messages(self) -> None:
+    def _fetch_process_messages(self) -> None:
         for name, process_subscriber in self.process_subscribers.items():
             while True:
                 try:
@@ -182,8 +180,8 @@ class Publisher:
                 self.queue_message(**kwargs)
 
     def send_messages(self) -> None:
-        self.fetch_thread_messages()
-        self.fetch_process_messages()
+        self._fetch_thread_messages()
+        self._fetch_process_messages()
         while self._message_queue:
             topic, kwargs = self._message_queue.pop(0)
             for subscriber in self.subscribers:

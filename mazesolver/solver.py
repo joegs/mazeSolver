@@ -25,7 +25,7 @@ class Solver(ProcessWorker):
         self.frametime = 1 / 15
         self.timer = Timer()
 
-    def load_state(self, state: ApplicationState) -> None:
+    def _load_state(self, state: ApplicationState) -> None:
         # start and end points are inverted, since image indexes are in the
         # form (y, x), instead of (x, y)
         self.image = state.image
@@ -35,15 +35,15 @@ class Solver(ProcessWorker):
         self.visited = np.zeros(self.image.bw_pixels.shape, dtype=np.uint8)
         self.solution = np.zeros(self.image.bw_pixels.shape, dtype=np.uint8)
 
-    def get_adjacent_pixels(self, pixel: Tuple[int, int]) -> List[Tuple[int, int]]:
+    def _get_adjacent_pixels(self, pixel: Tuple[int, int]) -> List[Tuple[int, int]]:
         x, y = pixel
         return [(x + 1, y), (x, y + 1), (x - 1, y), (x, y - 1)]
 
-    def mark_solution(self, path: List[Tuple[int, int]]) -> None:
+    def _mark_solution(self, path: List[Tuple[int, int]]) -> None:
         for x in path:
             self.solution[x] = self.VISITED_VALUE
 
-    def send_visited_pixels(self, block: bool = False) -> None:
+    def _send_visited_pixels(self, block: bool = False) -> None:
         region = self.visited.nonzero()
         try:
             self.output_queue.put(
@@ -58,7 +58,7 @@ class Solver(ProcessWorker):
         except Full:
             pass
 
-    def send_solution(self) -> None:
+    def _send_solution(self) -> None:
         region = self.solution.nonzero()
         try:
             self.output_queue.put(
@@ -73,7 +73,7 @@ class Solver(ProcessWorker):
         except Full:
             pass
 
-    def send_image_reset_request(self) -> None:
+    def _send_image_reset_request(self) -> None:
         try:
             self.output_queue.put(
                 {"topic": "ImageResetRequest"}, block=True, timeout=0.5,
@@ -81,7 +81,7 @@ class Solver(ProcessWorker):
         except Full:
             pass
 
-    def send_done_message(self) -> None:
+    def _send_done_message(self) -> None:
         try:
             self.output_queue.put(
                 {"topic": "MazeSolveDone"}, block=True, timeout=0.5,
@@ -89,7 +89,7 @@ class Solver(ProcessWorker):
         except Full:
             pass
 
-    def process_run_message(self, kwargs: Any) -> None:
+    def _process_run_message(self, kwargs: Any) -> None:
         if kwargs.get("start", False):
             state = kwargs["state"]
             self.solve(state)
@@ -106,17 +106,17 @@ class Solver(ProcessWorker):
                 except Empty:
                     break
                 message_received = True
-                self.process_run_message(kwargs)
+                self._process_run_message(kwargs)
             if message_received:
                 self.clear_queue()
 
-    def process_solving_message(self, kwargs: Dict[str, bool]) -> None:
+    def _process_solving_message(self, kwargs: Dict[str, bool]) -> None:
         if kwargs.get("stop", False):
-            self.wait_for_resume()
+            self._wait_for_resume()
         elif kwargs.get("reset", False):
             self.reset = True
 
-    def check_messages(self) -> None:
+    def _check_messages(self) -> None:
         if not self.received.is_set():
             return
         while True:
@@ -127,12 +127,12 @@ class Solver(ProcessWorker):
                 except Empty:
                     break
                 message_received = True
-                self.process_solving_message(kwargs)
+                self._process_solving_message(kwargs)
             if message_received:
                 self.clear_queue()
                 break
 
-    def process_waiting_message(self, kwargs: Any) -> None:
+    def _process_waiting_message(self, kwargs: Any) -> None:
         if kwargs.get("resume", False):
             self.waiting = False
             self.clear_queue()
@@ -141,7 +141,7 @@ class Solver(ProcessWorker):
             self.reset = True
             self.clear_queue()
 
-    def wait_for_resume(self) -> None:
+    def _wait_for_resume(self) -> None:
         self.waiting = True
         self.received.clear()
         while self.waiting:
@@ -153,13 +153,13 @@ class Solver(ProcessWorker):
                 except Empty:
                     break
                 message_received = True
-                self.process_waiting_message(kwargs)
+                self._process_waiting_message(kwargs)
             if message_received:
                 self.clear_queue()
 
     def solve(self, state: ApplicationState) -> Optional[List[Tuple[int, int]]]:
         self.clear_queue()
-        self.load_state(state)
+        self._load_state(state)
         queue = [[self.start_point]]
         height, width, _ = self.image.pixels.shape
         self.timer.start()
@@ -167,32 +167,32 @@ class Solver(ProcessWorker):
             path = queue.pop(0)
             current_pixel = path[-1]
             if current_pixel == self.end_point:
-                self.mark_solution(path)
-                self.send_visited_pixels(block=True)
-                self.send_solution()
+                self._mark_solution(path)
+                self._send_visited_pixels(block=True)
+                self._send_solution()
                 self.clear_queue()
-                self.send_done_message()
+                self._send_done_message()
                 return path
-            adjacent_pixels = self.get_adjacent_pixels(current_pixel)
+            adjacent_pixels = self._get_adjacent_pixels(current_pixel)
             for pixel in adjacent_pixels:
                 y, x = pixel
                 if (
                     x < 0 or y < 0 or x >= width or y >= height
                 ) or self.image.bw_pixels[pixel] == 0:
                     continue
-                elif self.visited[pixel] != self.VISITED_VALUE:
+                if self.visited[pixel] != self.VISITED_VALUE:
                     self.visited[pixel] = self.VISITED_VALUE
                     new_path = list(path) + [pixel]
                     queue.append(new_path)
             self.timer.measure()
             if self.timer.elapsed_time > self.frametime:
                 self.timer.start()
-                self.send_visited_pixels()
-                self.check_messages()
+                self._send_visited_pixels()
+                self._check_messages()
                 if self.reset:
                     self.reset = False
-                    self.send_image_reset_request()
+                    self._send_image_reset_request()
                     self.response.set()
                     return None
-        self.send_done_message()
+        self._send_done_message()
         return None

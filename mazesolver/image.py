@@ -16,7 +16,7 @@ class MazeImage:
         self.overlay: List[Tuple[Tuple[int, int, int, int], Tuple[int, int, int]]] = []
         self.loaded = False
 
-    def get_scaled_size(self) -> Tuple[int, int]:
+    def _get_scaled_size(self) -> Tuple[int, int]:
         height, width, _ = self.pixels.shape
         ratio = width / height
         if width > height:
@@ -31,7 +31,7 @@ class MazeImage:
     def _load_pixels(self, image_path: str) -> None:
         self.pixels = cv2.imread(image_path, cv2.IMREAD_COLOR)
         self.pixels = cv2.cvtColor(self.pixels, cv2.COLOR_BGR2RGB)
-        scaled_size = self.get_scaled_size()
+        scaled_size = self._get_scaled_size()
         self.pixels = cv2.resize(self.pixels, scaled_size)
 
     def _load_bw_pixels(self) -> None:
