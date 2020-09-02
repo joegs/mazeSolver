@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image, ImageTk
 
 from mazesolver.config import DEFAULT_SCALE_RESOLUTION
-from mazesolver.types import Color, Size, RegionOfInterest
+from mazesolver.types import Color, RegionOfInterest, Size
 
 
 class MazeImage:
@@ -43,9 +43,13 @@ class MazeImage:
     def load_image(self, image_path: str) -> None:
         if not image_path:
             return
-        self._load_pixels(image_path)
-        self._load_bw_pixels()
-        self.result = np.copy(self.pixels)
+        try:
+            self._load_pixels(image_path)
+            self._load_bw_pixels()
+            self.result = np.copy(self.pixels)
+        except cv2.error as e:
+            self.loaded = False
+            raise ValueError("Invalid Image") from e
         self.loaded = True
 
     def apply_overlay(self) -> None:

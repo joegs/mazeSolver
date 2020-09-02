@@ -90,7 +90,7 @@ class PointController:
         self.image.overlay.append((end_area, self.END_COLOR))
 
     def set_point(self, x: int, y: int) -> None:
-        if self.state.working:
+        if self.state.working or not self.state.image.loaded:
             return
         if self.status == PointStatus.START:
             self.start_point = Point(x, y)
@@ -147,11 +147,15 @@ class ImageController:
             return
         self.image.save_result(image_path)
 
+    def image_loading_error(self) -> None:
+        self.validator.image_validator.show_image_loading_error()
+
     def _setup_subscribers(self) -> None:
         subscribers = [
             Subscriber("ImageSelectionRequest", function=self.image_selection),
             Subscriber("ImageResetRequest", function=self.image_reset),
             Subscriber("ImageSaveRequest", function=self.image_save),
+            Subscriber("ImageLoadingError", function=self.image_loading_error),
         ]
         for subscriber in subscribers:
             PUBLISHER.register_subscriber(subscriber)

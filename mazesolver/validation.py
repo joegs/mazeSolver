@@ -97,6 +97,9 @@ class ImageValidator:
             message=f"Invalid Save Format: must be one of {self.SAVE_FORMATS}",
         )
 
+    def show_image_loading_error(self) -> None:
+        messagebox.showerror(title="Error", message="Error: Invalid File")
+
     def validate_image(self) -> None:
         if not self.image.loaded:
             self.show_image_not_loaded_error()

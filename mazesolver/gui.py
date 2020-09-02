@@ -43,6 +43,8 @@ class ImageArea(GuiElement):
         return size
 
     def _image_clicked(self, event: tk.Event) -> None:
+        if not self.image.loaded:
+            return
         x: int = event.x  # type: ignore[attr-defined]
         y: int = event.y  # type: ignore[attr-defined]
         scaled_width, scaled_height = self._get_scaled_size()
@@ -52,15 +54,23 @@ class ImageArea(GuiElement):
         PUBLISHER.queue_message("ImageClicked", x=real_x, y=real_y)
 
     def update_image(self) -> None:
-        if self.image.pixels is None:
+        if not self.image.loaded:
             return
         size = self._get_scaled_size()
         tk_image = self.image.get_tk_image(size)
         self.label.configure(image=tk_image)
         self.label.image = tk_image  # type: ignore[attr-defined]
 
+    def clear_image(self) -> None:
+        self.label.configure(image="")
+        self.label.image = None  # type: ignore[attr-defined]
+
     def change_image(self, image_path: str) -> None:
-        self.image.load_image(image_path)
+        try:
+            self.image.load_image(image_path)
+        except ValueError:
+            self.clear_image()
+            PUBLISHER.queue_message("ImageLoadingError")
         self.update_image()
 
     def replace_pixels(self, region: Any, color: Color) -> None:
