@@ -1,11 +1,9 @@
 from enum import Enum
 
-from mazesolver.gui import Application
 from mazesolver.image import MazeImage
-from mazesolver.pubsub import PUBLISHER, ProcessSubscriber, Subscriber
-from mazesolver.solver import Solver
+from mazesolver.pubsub import PUBLISHER, Subscriber
 from mazesolver.state import ApplicationState
-from mazesolver.types import Point, RegionOfInterest
+from mazesolver.types import Color, Point, RegionOfInterest
 from mazesolver.validation import Validator
 
 
@@ -43,8 +41,8 @@ class StateController:
 
 
 class PointController:
-    START_COLOR = (255, 0, 0)
-    END_COLOR = (255, 0, 255)
+    START_COLOR = Color(255, 0, 0)
+    END_COLOR = Color(255, 0, 255)
 
     def __init__(self, state: ApplicationState):
         self.state = state
@@ -210,25 +208,14 @@ class MazeController:
 
 
 class ApplicationController:
-    def __init__(self) -> None:
-        self.image = MazeImage()
+    def __init__(self, image: MazeImage) -> None:
+        self.image = image
         self.state = ApplicationState(self.image)
         self.validator = Validator(self.state)
         self._create_controllers()
-        self.application = Application(self.image)
-        self.solver = Solver()
-        self._setup_subscribers()
 
     def _create_controllers(self) -> None:
         state_controller = StateController(self.state)
         point_controller = PointController(self.state)
         image_controller = ImageController(self.state, self.validator)
         maze_controller = MazeController(self.state, self.validator)
-
-    def _setup_subscribers(self) -> None:
-        subscribers = [ProcessSubscriber("Maze", worker=self.solver)]
-        for subscriber in subscribers:
-            PUBLISHER.register_subscriber(subscriber)
-
-    def start(self) -> None:
-        self.application.start()

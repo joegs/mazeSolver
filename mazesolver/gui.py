@@ -252,7 +252,7 @@ class ControlArea(GuiElement):
         self.framerate_control.grid(column=0, row=5, sticky="NWE", pady=(0, 10))
 
 
-class Application:
+class ApplicationGui:
     def __init__(self, image: MazeImage):
         self.root = tk.Tk()
         self.root.title("Maze Solver")

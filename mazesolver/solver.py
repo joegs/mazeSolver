@@ -28,9 +28,9 @@ class Solver(ProcessWorker):
         self.timer = Timer()
 
     def _load_state(self, state: ApplicationState) -> None:
+        self.image = state.image
         # start and end points are inverted, since image indexes are in the
         # form (y, x), instead of (x, y)
-        self.image = state.image
         self.start_point = state.start_point[::-1]
         self.end_point = state.end_point[::-1]
         self.frametime = 1 / int(state.framerate)
