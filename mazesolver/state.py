@@ -1,11 +1,14 @@
+from dataclasses import dataclass
+from typing import Tuple
+
 from mazesolver.image import MazeImage
 
 
+@dataclass
 class ApplicationState:
-    def __init__(self, image: MazeImage):
-        self.image = image
-        self.resolution = "300"
-        self.framerate = "15"
-        self.start_point = (0, 0)
-        self.end_point = (0, 0)
-        self.working = False
+    image: MazeImage
+    resolution: str = "300"
+    framerate: str = "15"
+    start_point: Tuple[int, int] = (0, 0)
+    end_point: Tuple[int, int] = (0, 0)
+    working: bool = False
